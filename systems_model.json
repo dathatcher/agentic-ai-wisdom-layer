@@ -1,0 +1,44 @@
+{
+  "tools": [
+    {
+      "name": "Datadog",
+      "type": "Observability",
+      "relationships": {
+        "monitors_applications": ["PayrollApp", "BillingService"],
+        "used_by_teams": ["Observability", "DevOps"],
+        "integrates_with": ["Jira", "Slack"]
+      },
+      "systems": ["MonitoringStack"],
+      "perspectives": {
+        "ObservabilityTeam": "Essential APM",
+        "DevOpsTeam": "Optional/experimental",
+        "SecurityTeam": "Not evaluated"
+      }
+    }
+  ],
+  "applications": [
+    {
+      "name": "PayrollApp",
+      "environments": ["prod", "staging"],
+      "deployed_on": ["VM-PAY-01", "VM-PAY-02"],
+      "owned_by": "HR Dev Team",
+      "monitored_by": ["Datadog"]
+    }
+  ],
+  "people": [
+    {
+      "name": "Jane Doe",
+      "role": "Site Reliability Engineer",
+      "teams": ["SRE", "DevOps"],
+      "uses_tools": ["Terraform", "Datadog", "Jira"]
+    }
+  ],
+  "servers": [
+    {
+      "hostname": "VM-PAY-01",
+      "environment": "prod",
+      "runs": ["PayrollApp"],
+      "monitored_by": []
+    }
+  ]
+}

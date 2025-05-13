@@ -1,0 +1,16 @@
+# Ignore Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Ignore virtual environment folders
+venv/
+env/
+.venv/
+
+# Ignore system files
+.DS_Store
+*.log
+
+# Ignore Streamlit config or cache
+.streamlit/
