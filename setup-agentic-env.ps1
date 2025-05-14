@@ -14,14 +14,14 @@ choco install -y python git googlechrome
 Write-Host "Cloning your repository..."
 cd $env:USERPROFILE
 git clone https://github.com/dathatcher/wisdom-layer-poc.git
-cd YOUR_REPO_NAME
+cd wisdom-layer-poc
 
 Write-Host "Creating Python virtual environment..."
-python -m venv venv
+py -m venv venv
 .\venv\Scripts\Activate.ps1
 
 Write-Host "Upgrading pip and installing requirements..."
-python -m pip install --upgrade pip
+py -m pip install --upgrade pip
 
 if (Test-Path "requirements.txt") {
     pip install -r requirements.txt
