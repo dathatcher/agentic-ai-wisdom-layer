@@ -4,6 +4,7 @@ import json
 from agents.systems_thinking_agent import SystemsThinkingAgent
 from agents.chaos_theory_agent import ChaosTheoryAgent
 from agents.karma_agent import KarmaAgent  # ✅ NEW import
+from agents.complexity_sentinel_agent import ComplexitySentinelAgent
 
 st.title("Agentic AI Demo: Systems Thinking + Chaos Theory + Karma")
 
@@ -113,3 +114,19 @@ def plot_karma_ratings(karma_ledger):
     st.pyplot(fig)
 
 plot_karma_ratings(karma_results)
+
+# Simulate previous state for comparison
+previous_graph = {
+    "Datadog": ["PayrollApp"],
+    "PayrollApp": ["VM-PAY-01"],
+    "Jane Doe": ["Datadog", "Jira"],
+    "VM-PAY-01": ["PayrollApp"]
+}
+
+# Complexity Sentinel Agent
+st.header("Complexity Sentinel Agent")
+st.caption("Detects structural changes in the system over time.")
+sentinel = ComplexitySentinelAgent()
+sentinel_results = sentinel.detect_changes(previous_graph, flat_graph)
+st.subheader("Complexity Change Detection")
+st.json(sentinel_results)

@@ -1,45 +1,35 @@
-
 # complexity_sentinel_agent.py
-
-import json
-import difflib
 
 class ComplexitySentinelAgent:
     def __init__(self):
-        self.previous_snapshot = {}
+        self.changes = {}
 
-    def load_snapshot(self, current_snapshot):
+    def detect_changes(self, old_graph, new_graph):
         """
-        Accepts a new system snapshot (flattened dict of components and connections)
+        Compares two flattened graph models and detects added/removed nodes and edges.
         """
-        changes = self.detect_emergent_changes(current_snapshot)
-        self.previous_snapshot = current_snapshot
-        return changes
+        old_nodes = set(old_graph.keys())
+        new_nodes = set(new_graph.keys())
 
-    def detect_emergent_changes(self, current_snapshot):
-        """
-        Compares current snapshot with previous and returns emergent differences
-        """
-        changes = {
-            "new_nodes": [],
-            "removed_nodes": [],
-            "changed_relationships": []
+        added_nodes = list(new_nodes - old_nodes)
+        removed_nodes = list(old_nodes - new_nodes)
+
+        added_edges = []
+        removed_edges = []
+
+        for node in new_graph:
+            new_targets = set(new_graph.get(node, []))
+            old_targets = set(old_graph.get(node, []))
+            for t in new_targets - old_targets:
+                added_edges.append((node, t))
+            for t in old_targets - new_targets:
+                removed_edges.append((node, t))
+
+        self.changes = {
+            "added_nodes": added_nodes,
+            "removed_nodes": removed_nodes,
+            "added_edges": added_edges,
+            "removed_edges": removed_edges
         }
 
-        prev_nodes = set(self.previous_snapshot.keys())
-        curr_nodes = set(current_snapshot.keys())
-
-        changes["new_nodes"] = list(curr_nodes - prev_nodes)
-        changes["removed_nodes"] = list(prev_nodes - curr_nodes)
-
-        for node in curr_nodes & prev_nodes:
-            prev_conns = set(self.previous_snapshot.get(node, []))
-            curr_conns = set(current_snapshot.get(node, []))
-            if prev_conns != curr_conns:
-                changes["changed_relationships"].append({
-                    "node": node,
-                    "before": list(prev_conns),
-                    "after": list(curr_conns)
-                })
-
-        return changes
+        return self.changes
