@@ -1,4 +1,4 @@
-# Run this as Administrator
+# Run this as Administrator  .\setup-agentic-env.ps1
 
 Write-Host "Installing Chocolatey (if not installed)..."
 if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
