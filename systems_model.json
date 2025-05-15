@@ -25,6 +25,11 @@
         "DevOpsTeam": "Optional/experimental",
         "SecurityTeam": "Not evaluated"
       }
+    },
+    {
+      "name": "Checkly",
+      "type": "Monitoring",
+      "relationships": {}
     }
   ],
   "applications": [
