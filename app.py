@@ -115,14 +115,19 @@ if "Karma" in selected_agents:
 # Complexity Sentinel
 if "Complexity Sentinel" in selected_agents:
     st.header("🕵️‍♂️ Complexity Sentinel Agent")
-    previous_json = st.text_area("Paste previous flat graph JSON", height=200, value=json.dumps(flat_graph, indent=2))
-    try:
-        previous_graph = json.loads(previous_json)
-    except json.JSONDecodeError:
-        st.error("Invalid JSON")
-        previous_graph = {}
 
+    # Initialize session state for previous graph if it doesn't exist
+    if "previous_flat_graph" not in st.session_state:
+        st.session_state.previous_flat_graph = flat_graph  # First run = current graph
+
+    # Detect changes from last graph to current
     sentinel = ComplexitySentinelAgent()
-    sentinel_results = sentinel.detect_changes(previous_graph, flat_graph)
+    sentinel_results = sentinel.detect_changes(
+        st.session_state.previous_flat_graph, flat_graph
+    )
+
     st.subheader("Detected Changes")
     st.json(sentinel_results)
+
+    # Update previous graph to current one after comparison
+    st.session_state.previous_flat_graph = flat_graph
