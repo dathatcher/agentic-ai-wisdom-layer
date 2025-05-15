@@ -1,3 +1,4 @@
+
 import networkx as nx
 import matplotlib.pyplot as plt
 import streamlit as st
@@ -16,7 +17,7 @@ class SystemsThinkingAgent:
 
         self.graph.clear()
 
-        # Example: tools -> monitors -> applications
+        # Tools relationships
         for tool in data.get("tools", []):
             tool_name = tool["name"]
             for app in tool["relationships"].get("monitors_applications", []):
@@ -59,3 +60,29 @@ class SystemsThinkingAgent:
             ax=ax
         )
         st.pyplot(fig)
+
+    def analyze_perspectives(self, json_filepath):
+        with open(json_filepath) as f:
+            data = json.load(f)
+
+        perspectives_analysis = {}
+
+        # Perspectives from tools
+        for tool in data.get("tools", []):
+            for perspective, evaluation in tool.get("perspectives", {}).items():
+                perspectives_analysis.setdefault(perspective, []).append({
+                    "component": tool["name"],
+                    "type": "Tool",
+                    "evaluation": evaluation
+                })
+
+        # Perspectives from people based on role
+        for person in data.get("people", []):
+            role_perspective = person.get("role", "General")
+            perspectives_analysis.setdefault(role_perspective, []).append({
+                "component": person["name"],
+                "type": "Person",
+                "uses_tools": person.get("uses_tools", [])
+            })
+
+        return perspectives_analysis

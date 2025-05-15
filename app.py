@@ -1,3 +1,4 @@
+
 import streamlit as st
 import matplotlib.pyplot as plt
 import json
@@ -47,10 +48,26 @@ if "Systems Thinking" in selected_agents:
     st.header("🧩 Systems Thinking Agent")
     systems_agent = SystemsThinkingAgent()
     systems_agent.load_from_json("systems_model.json")
+
+    # Dependency analysis
+    st.subheader("Dependency Analysis")
     systems_results = systems_agent.analyze_dependencies()
     st.json(systems_results)
+
+    # System graph
     if st.checkbox("Show System Dependency Graph"):
         systems_agent.visualize_system()
+
+    # Perspectives
+    st.subheader("Perspectives Analysis (P from DSRP)")
+    perspectives_results = systems_agent.analyze_perspectives("systems_model.json")
+    perspective_options = ["All Perspectives"] + list(perspectives_results.keys())
+    selected_perspective = st.selectbox("Select Perspective", perspective_options)
+
+    if selected_perspective == "All Perspectives":
+        st.json(perspectives_results)
+    else:
+        st.json({selected_perspective: perspectives_results[selected_perspective]})
 
 # Chaos Theory
 if "Chaos Theory" in selected_agents:
