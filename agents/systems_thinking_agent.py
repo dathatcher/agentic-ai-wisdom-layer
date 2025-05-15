@@ -17,25 +17,37 @@ class SystemsThinkingAgent:
 
         self.graph.clear()
 
-        # Tools relationships
+        # Add all tools and their edges
         for tool in data.get("tools", []):
             tool_name = tool["name"]
+            self.graph.add_node(tool_name)
             for app in tool["relationships"].get("monitors_applications", []):
                 self.graph.add_edge(tool_name, app)
-
             for team in tool["relationships"].get("used_by_teams", []):
                 self.graph.add_edge(team, tool_name)
-
             for integration in tool["relationships"].get("integrates_with", []):
                 self.graph.add_edge(tool_name, integration)
 
+        # Add all applications and their edges
         for app in data.get("applications", []):
+            app_name = app["name"]
+            self.graph.add_node(app_name)
             for server in app.get("deployed_on", []):
-                self.graph.add_edge(app["name"], server)
+                self.graph.add_edge(app_name, server)
 
+        # Add all people and their edges
         for person in data.get("people", []):
+            person_name = person["name"]
+            self.graph.add_node(person_name)
             for tool in person.get("uses_tools", []):
-                self.graph.add_edge(person["name"], tool)
+                self.graph.add_edge(person_name, tool)
+
+        # Add all servers and their edges
+        for server in data.get("servers", []):
+            server_name = server["hostname"]
+            self.graph.add_node(server_name)
+            for app in server.get("runs", []):
+                self.graph.add_edge(server_name, app)
 
     def analyze_dependencies(self):
         bottlenecks = [node for node, deg in self.graph.in_degree() if deg > 1]
