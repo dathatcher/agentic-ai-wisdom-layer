@@ -3,130 +3,109 @@ import matplotlib.pyplot as plt
 import json
 from agents.systems_thinking_agent import SystemsThinkingAgent
 from agents.chaos_theory_agent import ChaosTheoryAgent
-from agents.karma_agent import KarmaAgent  # ✅ NEW import
+from agents.karma_agent import KarmaAgent
 from agents.complexity_sentinel_agent import ComplexitySentinelAgent
 
-st.title("Agentic AI Demo: Systems Thinking + Chaos Theory + Karma")
+st.set_page_config(page_title="Agentic AI Dashboard", layout="wide")
+st.title("🧠 Agentic AI Interactive Dashboard")
 
-# --- Helper: Convert JSON model to graph format ---
-def convert_json_to_graph_model(system_model):
+# Upload JSON
+uploaded_file = st.file_uploader("Upload a system model (.json)", type="json")
+if uploaded_file:
+    system_model = json.load(uploaded_file)
+else:
+    with open("systems_model.json") as f:
+        system_model = json.load(f)
+
+# Convert JSON to flat graph
+def convert_json_to_graph(system_model):
     graph = {}
-
-    # Tools and their relationships
     for tool in system_model.get("tools", []):
-        name = tool["name"]
-        graph[name] = []
+        graph[tool["name"]] = []
         for targets in tool.get("relationships", {}).values():
-            graph[name].extend(targets)
-
-    # Applications -> deployed on + monitored by
+            graph[tool["name"]].extend(targets)
     for app in system_model.get("applications", []):
-        app_name = app["name"]
-        graph.setdefault(app_name, [])
-        graph[app_name].extend(app.get("deployed_on", []))
-        graph[app_name].extend(app.get("monitored_by", []))
-
-    # People -> tools they use
+        graph.setdefault(app["name"], [])
+        graph[app["name"]].extend(app.get("deployed_on", []))
+        graph[app["name"]].extend(app.get("monitored_by", []))
     for person in system_model.get("people", []):
-        person_name = person["name"]
-        graph[person_name] = person.get("uses_tools", [])
-
-    # Servers -> apps they run
+        graph[person["name"]] = person.get("uses_tools", [])
     for server in system_model.get("servers", []):
-        server_name = server["hostname"]
-        graph.setdefault(server_name, [])
-        graph[server_name].extend(server.get("runs", []))
-
+        graph.setdefault(server["hostname"], [])
+        graph[server["hostname"]].extend(server.get("runs", []))
     return graph
 
-# --- Load and transform input model ---
-with open("systems_model.json") as f:
-    system_model = json.load(f)
+flat_graph = convert_json_to_graph(system_model)
 
-flat_graph = convert_json_to_graph_model(system_model)
+# Select Agents
+selected_agents = st.multiselect("Select Agents to Run", [
+    "Systems Thinking", "Chaos Theory", "Karma", "Complexity Sentinel"
+], default=["Systems Thinking", "Chaos Theory", "Karma"])
 
-# --- Systems Thinking Agent ---
-st.header("Systems Thinking Agent")
-st.caption("Identifies bottlenecks and isolated nodes.")
-systems_agent = SystemsThinkingAgent()
-systems_agent.load_from_json("systems_model.json")
-systems_results = systems_agent.analyze_dependencies()
-st.subheader("Systems Thinking Results")
-st.json(systems_results)
+# Systems Thinking
+if "Systems Thinking" in selected_agents:
+    st.header("🧩 Systems Thinking Agent")
+    systems_agent = SystemsThinkingAgent()
+    systems_agent.load_from_json("systems_model.json")
+    systems_results = systems_agent.analyze_dependencies()
+    st.json(systems_results)
+    if st.checkbox("Show System Dependency Graph"):
+        systems_agent.visualize_system()
 
-if st.button("Visualize System Graph"):
-    systems_agent.visualize_system()
+# Chaos Theory
+if "Chaos Theory" in selected_agents:
+    st.header("🌪 Chaos Theory Agent")
+    chaos_agent = ChaosTheoryAgent()
+    chaos_agent.load_system(flat_graph)
+    chaos_results = chaos_agent.analyze_instability()
+    st.json(chaos_results)
 
-# --- Chaos Theory Agent ---
-st.header("Chaos Theory Agent")
-st.caption("Analyzes volatility and feedback loops.")
-chaos_agent = ChaosTheoryAgent()
-chaos_agent.load_system(flat_graph)
-chaos_results = chaos_agent.analyze_instability()
-st.subheader("Chaos Theory Results")
-st.json(chaos_results)
+    if st.checkbox("Show Volatility Chart"):
+        labels = list(chaos_results["volatility_scores"].keys())
+        values = list(chaos_results["volatility_scores"].values())
+        colors = ["red" if v > 0.7 else "orange" if v > 0.4 else "green" for v in values]
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.barh(labels, values, color=colors)
+        ax.set_xlim(0, 1)
+        ax.set_xlabel("Volatility Score")
+        ax.set_title("Chaos Theory Agent: Volatility Scores")
+        st.pyplot(fig)
 
-def plot_volatility_scores(volatility_scores):
-    st.subheader("Volatility Score Chart")
-    labels = list(volatility_scores.keys())
-    values = list(volatility_scores.values())
+# Karma
+if "Karma" in selected_agents:
+    st.header("🧘 Karma Agent")
+    karma_agent = KarmaAgent()
+    karma_agent.load_system(flat_graph)
+    karma_results = karma_agent.report()
+    st.json(karma_results)
 
-    colors = [
-        "red" if v > 0.7 else "orange" if v > 0.4 else "green"
-        for v in values
-    ]
+    if st.checkbox("Show Karma Score Chart"):
+        labels = list(karma_results.keys())
+        scores = [v["impact_score"] for v in karma_results.values()]
+        colors = [
+            "blue" if v["karma_rating"] == "Positive"
+            else "gray" if v["karma_rating"] == "Neutral"
+            else "red"
+            for v in karma_results.values()
+        ]
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.barh(labels, scores, color=colors)
+        ax.set_xlim(0, 1)
+        ax.set_xlabel("Impact Score")
+        ax.set_title("Karma Agent: Ethical Impact Ratings")
+        st.pyplot(fig)
 
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.barh(labels, values, color=colors)
-    ax.set_xlabel("Volatility Score")
-    ax.set_xlim(0, 1)
-    ax.set_title("Chaos Theory Agent: Volatility Scores")
-    st.pyplot(fig)
+# Complexity Sentinel
+if "Complexity Sentinel" in selected_agents:
+    st.header("🕵️‍♂️ Complexity Sentinel Agent")
+    previous_json = st.text_area("Paste previous flat graph JSON", height=200, value=json.dumps(flat_graph, indent=2))
+    try:
+        previous_graph = json.loads(previous_json)
+    except json.JSONDecodeError:
+        st.error("Invalid JSON")
+        previous_graph = {}
 
-plot_volatility_scores(chaos_results["volatility_scores"])
-
-#if st.button("Visualize Volatility Graph"):
- #   st.warning("Visualization not yet implemented for volatility scores.")
-
-# --- Karma Agent ---
-st.header("Karma Agent")
-st.caption("Evaluates ethical impact based on intention and outcome.")
-karma_agent = KarmaAgent()
-karma_agent.load_system(flat_graph)
-karma_results = karma_agent.report()
-st.subheader("Karma Agent Results")
-st.json(karma_results)
-
-def plot_karma_ratings(karma_ledger):
-    st.subheader("Karma Score Chart")
-    labels = list(karma_ledger.keys())
-    scores = [v["impact_score"] for v in karma_ledger.values()]
-    ratings = [v["karma_rating"] for v in karma_ledger.values()]
-
-    color_map = {"Positive": "blue", "Neutral": "gray", "Negative": "red"}
-    colors = [color_map.get(rating, "gray") for rating in ratings]
-
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.barh(labels, scores, color=colors)
-    ax.set_xlabel("Impact Score")
-    ax.set_xlim(0, 1)
-    ax.set_title("Karma Agent: Ethical Impact Ratings")
-    st.pyplot(fig)
-
-plot_karma_ratings(karma_results)
-
-# Simulate previous state for comparison
-previous_graph = {
-    "Datadog": ["PayrollApp"],
-    "PayrollApp": ["VM-PAY-01"],
-    "Jane Doe": ["Datadog", "Jira"],
-    "VM-PAY-01": ["PayrollApp"]
-}
-
-# Complexity Sentinel Agent
-st.header("Complexity Sentinel Agent")
-st.caption("Detects structural changes in the system over time.")
-sentinel = ComplexitySentinelAgent()
-sentinel_results = sentinel.detect_changes(previous_graph, flat_graph)
-st.subheader("Complexity Change Detection")
-st.json(sentinel_results)
+    sentinel = ComplexitySentinelAgent()
+    sentinel_results = sentinel.detect_changes(previous_graph, flat_graph)
+    st.subheader("Detected Changes")
+    st.json(sentinel_results)
