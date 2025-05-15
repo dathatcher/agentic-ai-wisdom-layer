@@ -9,15 +9,14 @@ class SystemsThinkingAgent:
         self.graph = nx.DiGraph()
 
     def load_from_json(self, filepath):
-        """
-        Builds the system graph from a JSON schema
-        """
         with open(filepath) as f:
             data = json.load(f)
+        self.load_from_dict(data)
 
+    def load_from_dict(self, data):
         self.graph.clear()
 
-        # Add all tools and their edges
+        # Tools
         for tool in data.get("tools", []):
             tool_name = tool["name"]
             self.graph.add_node(tool_name)
@@ -28,21 +27,21 @@ class SystemsThinkingAgent:
             for integration in tool["relationships"].get("integrates_with", []):
                 self.graph.add_edge(tool_name, integration)
 
-        # Add all applications and their edges
+        # Applications
         for app in data.get("applications", []):
             app_name = app["name"]
             self.graph.add_node(app_name)
             for server in app.get("deployed_on", []):
                 self.graph.add_edge(app_name, server)
 
-        # Add all people and their edges
+        # People
         for person in data.get("people", []):
             person_name = person["name"]
             self.graph.add_node(person_name)
             for tool in person.get("uses_tools", []):
                 self.graph.add_edge(person_name, tool)
 
-        # Add all servers and their edges
+        # Servers
         for server in data.get("servers", []):
             server_name = server["hostname"]
             self.graph.add_node(server_name)
@@ -76,10 +75,11 @@ class SystemsThinkingAgent:
     def analyze_perspectives(self, json_filepath):
         with open(json_filepath) as f:
             data = json.load(f)
+        return self.analyze_perspectives_from_dict(data)
 
+    def analyze_perspectives_from_dict(self, data):
         perspectives_analysis = {}
 
-        # Perspectives from tools
         for tool in data.get("tools", []):
             for perspective, evaluation in tool.get("perspectives", {}).items():
                 perspectives_analysis.setdefault(perspective, []).append({
@@ -88,7 +88,6 @@ class SystemsThinkingAgent:
                     "evaluation": evaluation
                 })
 
-        # Perspectives from people based on role
         for person in data.get("people", []):
             role_perspective = person.get("role", "General")
             perspectives_analysis.setdefault(role_perspective, []).append({

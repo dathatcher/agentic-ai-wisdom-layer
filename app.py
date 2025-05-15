@@ -47,7 +47,7 @@ selected_agents = st.multiselect("Select Agents to Run", [
 if "Systems Thinking" in selected_agents:
     st.header("🧩 Systems Thinking Agent")
     systems_agent = SystemsThinkingAgent()
-    systems_agent.load_from_json("systems_model.json")
+    systems_agent.load_from_dict(system_model)
 
     # Dependency analysis
     st.subheader("Dependency Analysis")
@@ -60,7 +60,7 @@ if "Systems Thinking" in selected_agents:
 
     # Perspectives
     st.subheader("Perspectives Analysis (P from DSRP)")
-    perspectives_results = systems_agent.analyze_perspectives("systems_model.json")
+    perspectives_results = systems_agent.analyze_perspectives_from_dict(system_model)
     perspective_options = ["All Perspectives"] + list(perspectives_results.keys())
     selected_perspective = st.selectbox("Select Perspective", perspective_options)
 
