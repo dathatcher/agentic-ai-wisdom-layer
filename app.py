@@ -3,7 +3,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import json
 from agents.systems_thinking_agent import SystemsThinkingAgent
-from agents.chaos_theory_agent import ChaosTheoryAgent
+from agents.chaos_theory_agent import ChaosTheoryAgent  # ripple version
 from agents.karma_agent import KarmaAgent
 from agents.complexity_sentinel_agent import ComplexitySentinelAgent
 
@@ -49,16 +49,13 @@ if "Systems Thinking" in selected_agents:
     systems_agent = SystemsThinkingAgent()
     systems_agent.load_from_dict(system_model)
 
-    # Dependency analysis
     st.subheader("Dependency Analysis")
     systems_results = systems_agent.analyze_dependencies()
     st.json(systems_results)
 
-    # System graph
     if st.checkbox("Show System Dependency Graph"):
         systems_agent.visualize_system()
 
-    # Perspectives
     st.subheader("Perspectives Analysis (P from DSRP)")
     perspectives_results = systems_agent.analyze_perspectives_from_dict(system_model)
     perspective_options = ["All Perspectives"] + list(perspectives_results.keys())
@@ -71,9 +68,9 @@ if "Systems Thinking" in selected_agents:
 
 # Chaos Theory
 if "Chaos Theory" in selected_agents:
-    st.header("🌪 Chaos Theory Agent")
+    st.header("🌪 Chaos Theory Agent (Ripple Model)")
     chaos_agent = ChaosTheoryAgent()
-    chaos_agent.load_system(flat_graph)
+    chaos_agent.load_system(flat_graph, decay_factor=0.6)
     chaos_results = chaos_agent.analyze_instability()
     st.json(chaos_results)
 
@@ -84,8 +81,8 @@ if "Chaos Theory" in selected_agents:
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.barh(labels, values, color=colors)
         ax.set_xlim(0, 1)
-        ax.set_xlabel("Volatility Score")
-        ax.set_title("Chaos Theory Agent: Volatility Scores")
+        ax.set_xlabel("Volatility Score (Ripple Weighted)")
+        ax.set_title("Chaos Theory Agent: Ripple-Weighted Volatility Scores")
         st.pyplot(fig)
 
 # Karma
@@ -116,11 +113,9 @@ if "Karma" in selected_agents:
 if "Complexity Sentinel" in selected_agents:
     st.header("🕵️‍♂️ Complexity Sentinel Agent")
 
-    # Initialize session state for previous graph if it doesn't exist
     if "previous_flat_graph" not in st.session_state:
-        st.session_state.previous_flat_graph = flat_graph  # First run = current graph
+        st.session_state.previous_flat_graph = flat_graph
 
-    # Detect changes from last graph to current
     sentinel = ComplexitySentinelAgent()
     sentinel_results = sentinel.detect_changes(
         st.session_state.previous_flat_graph, flat_graph
@@ -129,5 +124,4 @@ if "Complexity Sentinel" in selected_agents:
     st.subheader("Detected Changes")
     st.json(sentinel_results)
 
-    # Update previous graph to current one after comparison
     st.session_state.previous_flat_graph = flat_graph
