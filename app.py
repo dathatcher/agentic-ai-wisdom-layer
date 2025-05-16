@@ -90,6 +90,22 @@ selected_agents = st.multiselect("Select Agents to Run", [
 # Systems Thinking
 if "Systems Thinking" in selected_agents:
     st.header("🧩 Systems Thinking Agent")
+    st.markdown("""
+        ### 🧩 Systems Thinking Agent – Interpretation Guide
+
+    - 🔗 **Dependency Analysis**:
+        - **Bottlenecks**: Nodes with multiple incoming edges (i.e., relied upon by many others)
+            - May indicate central dependencies or single points of failure
+        - **Isolated Nodes**: Nodes with no connections (no incoming or outgoing edges)
+            - Could be underutilized, deprecated, or pending integration
+
+    - 🧠 **Perspectives Analysis (P from DSRP)**:
+        - Represents how different roles or groups perceive a component
+        - Example: "Datadog" might be *Essential* to Observability but *Optional* for DevOps
+        - This simulation filters perspectives **only for viewing**, not for agent decision-making
+        - ⚠️ *Note*: In future AI-powered versions, agents will re-evaluate analysis dynamically based on selected perspective
+    """)
+
     systems_agent = SystemsThinkingAgent()
     systems_agent.load_from_dict(system_model)
 
@@ -122,6 +138,19 @@ if "Chaos Theory" in selected_agents:
     chaos_agent = ChaosTheoryAgent()
     chaos_agent.load_system(flat_graph, decay_factor=0.6)
     chaos_results = chaos_agent.analyze_instability()
+    st.markdown("""
+       ### 📉 Chaos Theory Agent – Interpretation Guide
+
+       - ✅ **Volatility Score**: Reflects how much instability or ripple impact a node introduces into the system (range: 0 to 1)
+           - Low (< 0.3): Stable node — unlikely to propagate risk
+           - Moderate (0.3 – 0.7): Sensitive — may trigger some ripple effects
+           - ⚠️ High (> 0.7): Volatile — changes here could affect multiple components
+       - ♻️ **Feedback Loops**: Circular dependencies between nodes that can amplify chaos
+           - Detected via graph cycles
+           - Their presence may suggest areas prone to runaway effects or tight coupling
+       - 🔁 **Volatile Nodes**: Nodes with volatility > 0.7 — shown in **red** on the bar chart (press checkbox to expand graph)      
+       """)
+
     st.json(chaos_results)
 
     if st.checkbox("Show Volatility Chart"):
@@ -138,6 +167,24 @@ if "Chaos Theory" in selected_agents:
 # Karma
 if "Karma" in selected_agents:
     st.header("🧘 Karma Agent")
+    st.markdown("""
+      ### 🧘 Karma Agent – Interpretation Guide
+
+      - ⚖️**Karma Rating**: Ethical classification of a node based on *intention × impact × activity*
+      - **Intention**: Human-labeled or inferred (e.g., Positive, Neutral, Negative)
+      - **Impact Score**: Reflects the breadth and severity of influence across the system
+           - Ranges from 0 (no impact) to 1 (broad, systemic influence)
+      - **Karma Rating**:
+           - 🔵 *Positive*: Aligned with intended outcomes and positive systemic influence
+           - ⚪ *Neutral*: Limited influence or mixed ethical load
+           - 🔴 *Negative*: High influence with questionable or unintended consequences
+
+      - 🔍 **Interpretation Tips**:
+           - Positive intention + low impact = may need better enablement
+           - Negative intention + high impact = risk for ethical fragility
+           - Karma shifts over time as nodes take on more influence (via ripple effects from other agents)
+    """)
+    
     karma_agent = KarmaAgent()
     karma_agent.load_system(flat_graph, events=system_model.get("events", []))
     karma_results = karma_agent.report()
