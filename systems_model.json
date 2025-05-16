@@ -73,5 +73,130 @@
       ],
       "monitored_by": []
     }
+  ],
+  "teams": [
+    {
+      "name": "DevOps",
+      "roles": [
+        "Site Reliability Engineer",
+        "Platform Engineer"
+      ],
+      "members": [
+        "Jane Doe"
+      ],
+      "responsibilities": {
+        "owns_tools": [
+          "Terraform",
+          "Jira"
+        ],
+        "monitors_apps": [
+          "PayrollApp"
+        ],
+        "integrates_with": [
+          "Slack"
+        ]
+      }
+    },
+    {
+      "name": "Observability",
+      "roles": [
+        "Monitoring Engineer"
+      ],
+      "members": [],
+      "responsibilities": {
+        "owns_tools": [
+          "Datadog"
+        ],
+        "monitors_apps": [],
+        "integrates_with": []
+      }
+    },
+    {
+      "name": "SRE",
+      "roles": [
+        "Site Reliability Engineer"
+      ],
+      "members": [
+        "Jane Doe"
+      ],
+      "responsibilities": {
+        "responds_to": [
+          "PayrollApp"
+        ],
+        "uses_tools": [
+          "Datadog",
+          "Terraform"
+        ]
+      }
+    },
+    {
+      "name": "HR Dev Team",
+      "roles": [
+        "Application Developer"
+      ],
+      "members": [],
+      "responsibilities": {
+        "owns_apps": [
+          "PayrollApp"
+        ]
+      }
+    }
+  ],
+  "events": [
+    {
+      "id": "RELEASE-v1.2.0",
+      "type": "release",
+      "tool": "Jenkins",
+      "initiator": "CI Pipeline",
+      "related_to": "PayrollApp",
+      "timestamp": "2025-05-15T14:05:00Z",
+      "tags": [
+        "automated",
+        "prod",
+        "success"
+      ],
+      "sub_events": [
+        "JIRA-1234",
+        "COMMIT-a1b2c3",
+        "JENKINS-049"
+      ]
+    },
+    {
+      "id": "JIRA-1234",
+      "type": "ticket",
+      "tool": "Jira",
+      "initiator": "Jane Doe",
+      "related_to": "PayrollApp",
+      "timestamp": "2025-05-15T13:22:00Z",
+      "tags": [
+        "bug",
+        "critical",
+        "deployment"
+      ]
+    },
+    {
+      "id": "COMMIT-a1b2c3",
+      "type": "commit",
+      "tool": "GitHub",
+      "initiator": "Jane Doe",
+      "related_to": "PayrollApp",
+      "timestamp": "2025-05-15T14:00:00Z",
+      "tags": [
+        "feature",
+        "auth"
+      ]
+    },
+    {
+      "id": "JENKINS-049",
+      "type": "deployment",
+      "tool": "Jenkins",
+      "initiator": "CI Pipeline",
+      "related_to": "PayrollApp",
+      "timestamp": "2025-05-15T14:02:00Z",
+      "tags": [
+        "success",
+        "prod"
+      ]
+    }
   ]
 }

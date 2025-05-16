@@ -1,52 +1,71 @@
-# karma_agent.py
 
 import random
 
 class KarmaAgent:
     def __init__(self):
-        self.karma_ledger = {}  # Stores karma score for each component
+        self.impact_scores = {}
 
-    def load_system(self, components):
-        """
-        Loads a flattened graph model (same format as chaos agent).
-        Calculates karma based on synthetic intention and impact patterns.
-        """
-        self.karma_ledger.clear()
-        for node, connections in components.items():
-            intent = self.simulate_intention(node)
-            impact = self.simulate_impact(node)
-            karma_score = self.calculate_karma(intent, impact)
-            self.karma_ledger[node] = {
-                "intention": intent,
-                "impact_score": impact,
-                "karma_rating": karma_score
+    def load_system(self, graph, events=None):
+        self.impact_scores.clear()
+        event_counts = {}
+
+        # Count how many times a node appears in events
+        if events:
+            for event in events:
+                initiator = event.get("initiator")
+                if initiator:
+                    event_counts[initiator] = event_counts.get(initiator, 0) + 1
+                related = event.get("related_to")
+                if related:
+                    event_counts[related] = event_counts.get(related, 0) + 1
+                for sub in event.get("sub_events", []):
+                    event_counts[sub] = event_counts.get(sub, 0) + 1
+
+        for node, edges in graph.items():
+            node_type = self.infer_type(node, edges)
+            base_intention = random.choice(["Positive", "Neutral", "Negative"])
+            base_impact = random.uniform(0.1, 1.0)
+
+            # Teams get higher impact if connected to many critical nodes
+            if node_type == "team":
+                connection_weight = len(edges)
+                base_impact += 0.05 * connection_weight
+
+            # Adjust impact based on event participation
+            if node in event_counts:
+                base_impact += 0.05 * min(event_counts[node], 6)  # cap bonus at +0.3
+
+            impact = min(base_impact, 1.0)
+            rating = self.score_to_rating(base_intention, impact)
+
+            self.impact_scores[node] = {
+                "type": node_type,
+                "intention": base_intention,
+                "impact_score": round(impact, 2),
+                "karma_rating": rating
             }
 
-    def simulate_intention(self, node):
-        """
-        Assigns a placeholder intention (could be learned later)
-        """
-        return random.choice(["Efficiency", "Monitoring", "Compliance", "Collaboration", "Resilience"])
-
-    def simulate_impact(self, node):
-        """
-        Simulates an ethical or operational impact score (0 to 1)
-        """
-        return round(random.uniform(0.0, 1.0), 2)
-
-    def calculate_karma(self, intention, impact_score):
-        """
-        Simple logic: If impact is high and intention is 'positive', karma is good.
-        """
-        if impact_score >= 0.7:
-            return "Positive"
-        elif 0.4 <= impact_score < 0.7:
-            return "Neutral"
+    def infer_type(self, node, edges):
+        if "Team" in node or "team" in node:
+            return "team"
+        elif "App" in node or "Service" in node:
+            return "application"
+        elif "VM" in node:
+            return "server"
+        elif " " in node:
+            return "person"
+        elif node.startswith(("JIRA-", "COMMIT", "JENKINS", "RELEASE")):
+            return "event"
         else:
+            return "tool"
+
+    def score_to_rating(self, intention, impact):
+        if intention == "Positive" and impact > 0.6:
+            return "Positive"
+        elif intention == "Negative" and impact > 0.4:
             return "Negative"
+        else:
+            return "Neutral"
 
     def report(self):
-        """
-        Returns full karma ratings for all nodes
-        """
-        return self.karma_ledger
+        return self.impact_scores
