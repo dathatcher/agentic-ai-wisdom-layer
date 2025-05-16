@@ -20,7 +20,11 @@ if uploaded_file:
 else:
     with open("systems_model.json") as f:
         system_model = json.load(f)
-
+st.markdown(
+    "**⚠️ Note:** You can modify the systems_model.json file locally and import it here (above)."
+     " Follow the instructions in the WALKTHROUGH.md to explore how different structures, roles, or events affect the output."
+     " Any structural or behavioral change in the file will be detected and reflected by the Complexity Sentinel agent."
+)
 # Convert JSON to flat graph
 def convert_json_to_graph(system_model):
     graph = {}
@@ -100,6 +104,12 @@ if "Systems Thinking" in selected_agents:
     perspectives_results = systems_agent.analyze_perspectives_from_dict(system_model)
     perspective_options = ["All Perspectives"] + list(perspectives_results.keys())
     selected_perspective = st.selectbox("Select Perspective", perspective_options)
+ 
+    st.markdown(
+      "**⚠️ Note:** This dropdown does _not_ change the behavior of agents. "
+      "It only filters the view of perspectives. In a future implementation, AI agents will dynamically re-evaluate "
+      "each layer based on the selected perspective."
+    )
 
     if selected_perspective == "All Perspectives":
         st.json(perspectives_results)
