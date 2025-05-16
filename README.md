@@ -13,6 +13,7 @@ It operates on a JSON-based mental model that can be iteratively evolved by huma
 
 > 🚫 **Note:** This project is not yet AI-powered. It is a working simulation of agentic logic using rule-based modeling. The architecture lays the foundation for future integration with AI tools such as LLMs, machine learning pipelines, and agent-based orchestration. This simulation demonstrates that the underlying conceptual framework is robust and extensible.
 
+![Wisdom Architecture Overview]
 ---
 
 ## 🧩 Agents Included
