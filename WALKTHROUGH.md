@@ -67,7 +67,9 @@ You can start small, with just a few nodes and relationships, and grow your mode
 
 ## 🧠 Understanding the Data Layer
 
-The Wisdom Layer relies on a structured JSON model to simulate an evolving mental model of a system. This model includes:
+The Wisdom Layer relies on a structured JSON model to simulate an evolving mental model of a system **within this proof-of-concept**. This format is used to make the simulation interpretable and extensible while still being lightweight and easy to modify.
+
+This model includes:
 
 - **People** (e.g., Jane Doe, CI Pipeline)
 - **Tools** (e.g., Jira, Jenkins, Datadog)
@@ -77,6 +79,9 @@ The Wisdom Layer relies on a structured JSON model to simulate an evolving menta
 - **Events** (e.g., commits, tickets, deployments, releases)
 
 > The **event layer** captures artifacts and actions from humans, tools, and systems — including Jira tickets, GitHub commits, Jenkins builds, etc. These are key indicators of activity, responsibility, and influence across the system.
+
+In a future state where this architecture is extended with live AI agents and connected to operational systems, the "mental model" will likely come from an evolving data layer populated via APIs, logs, system telemetry, workflow histories, and learning agents. This will enable a living, multi-perspective model that is continuously refined — but the structural foundation will remain aligned to the current simulation model.
+
 
 ---
 
