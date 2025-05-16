@@ -117,3 +117,7 @@ That’s where intelligence becomes wisdom.
 **David Thatcher**  
 Independent Researcher, Veteran, and Systems Thinker  
 🔗 GitHub: @dathatcher
+
+# © 2025 David Thatcher. All rights reserved.
+# Wisdom Layer Simulation Framework
+# For license and reuse contact: david.austin.thatcher@gmail.com

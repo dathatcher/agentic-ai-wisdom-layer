@@ -140,3 +140,7 @@ MIT License — See `LICENSE` file.
 ## 📅 Last Updated
 
 May 15, 2025
+
+# © 2025 David Thatcher. All rights reserved.
+# Wisdom Layer Simulation Framework
+# For license and reuse contact: david.austin.thatcher@gmail.com

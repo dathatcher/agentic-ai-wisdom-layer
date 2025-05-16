@@ -1,3 +1,6 @@
+# © 2025 David Thatcher. All rights reserved.
+# Wisdom Layer Simulation Framework
+# For license and reuse contact: david.austin.thatcher@gmail.com
 
 import networkx as nx
 import random

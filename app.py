@@ -1,3 +1,6 @@
+# © 2025 David Thatcher. All rights reserved.
+# Wisdom Layer Simulation Framework
+# For license and reuse contact: david.austin.thatcher@gmail.com
 
 import streamlit as st
 import matplotlib.pyplot as plt
