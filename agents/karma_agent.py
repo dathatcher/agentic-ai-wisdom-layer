@@ -19,8 +19,11 @@ class KarmaAgent:
                 if initiator:
                     event_counts[initiator] = event_counts.get(initiator, 0) + 1
                 related = event.get("related_to")
-                if related:
-                    event_counts[related] = event_counts.get(related, 0) + 1
+                if isinstance(related, list):
+                 for r in related:
+                  event_counts[r] = event_counts.get(r, 0) + 1
+                elif related:
+                  event_counts[related] = event_counts.get(related, 0) + 1
                 for sub in event.get("sub_events", []):
                     event_counts[sub] = event_counts.get(sub, 0) + 1
 

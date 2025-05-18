@@ -89,7 +89,12 @@ class SystemsThinkingAgent:
             if "initiator" in event:
                 self.graph.add_edge(event["initiator"], event_id)
             if "related_to" in event:
-                self.graph.add_edge(event_id, event["related_to"])
+              related = event["related_to"]
+            if isinstance(related, list):
+                for target in related:
+                 self.graph.add_edge(event_id, target)
+            else:
+               self.graph.add_edge(event_id, related)
             for sub in event.get("sub_events", []):
                 self.graph.add_edge(event_id, sub)
 

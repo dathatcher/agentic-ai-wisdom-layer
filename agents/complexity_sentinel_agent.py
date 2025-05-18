@@ -4,14 +4,18 @@
 
 # complexity_sentinel_agent.py
 
+def flatten(values):
+    for v in values:
+        if isinstance(v, list):
+            yield from flatten(v)
+        else:
+            yield v
+
 class ComplexitySentinelAgent:
     def __init__(self):
         self.changes = {}
 
     def detect_changes(self, old_graph, new_graph):
-        """
-        Compares two flattened graph models and detects added/removed nodes and edges.
-        """
         old_nodes = set(old_graph.keys())
         new_nodes = set(new_graph.keys())
 
@@ -22,8 +26,8 @@ class ComplexitySentinelAgent:
         removed_edges = []
 
         for node in new_graph:
-            new_targets = set(new_graph.get(node, []))
-            old_targets = set(old_graph.get(node, []))
+            new_targets = set(flatten(new_graph.get(node, [])))
+            old_targets = set(flatten(old_graph.get(node, [])))
             for t in new_targets - old_targets:
                 added_edges.append((node, t))
             for t in old_targets - new_targets:
