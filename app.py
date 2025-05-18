@@ -17,14 +17,17 @@ st.title("🧠 Agentic AI Interactive Dashboard")
 uploaded_file = st.file_uploader("Upload a system model (.json)", type="json")
 if uploaded_file:
     system_model = json.load(uploaded_file)
+    st.session_state["new_graph_uploaded"] = True
 else:
     with open("systems_model.json") as f:
         system_model = json.load(f)
+    st.session_state["new_graph_uploaded"] = False
+
 st.markdown(
-    "**⚠️ Note:** You can modify the systems_model.json file locally and import it here (above)."
-     " Follow the instructions in the WALKTHROUGH.md to explore how different structures, roles, or events affect the output."
-     " Any structural or behavioral change in the file will be detected and reflected by the Complexity Sentinel agent."
+    "**📘 Tip:** Modify the systems_model.json locally or upload a different model above. "
+    "The Complexity Sentinel will detect changes. Use this with the walkthrough guide to explore different scenarios."
 )
+
 # Convert JSON to flat graph
 def convert_json_to_graph(system_model):
     graph = {}
@@ -71,18 +74,17 @@ def convert_json_to_graph(system_model):
 
 flat_graph = convert_json_to_graph(system_model)
 
-# Display Events Panel
+# Events Panel (Sidebar)
 if "events" in system_model:
     st.sidebar.header("📆 Events Overview")
     event_counts = {}
     for event in system_model["events"]:
         initiator = event.get("initiator", "Unknown")
         event_counts[initiator] = event_counts.get(initiator, 0) + 1
-
     for actor, count in sorted(event_counts.items(), key=lambda x: -x[1]):
         st.sidebar.write(f"🔸 {actor}: {count} events")
 
-# Select Agents
+# Agent Selection
 selected_agents = st.multiselect("Select Agents to Run", [
     "Systems Thinking", "Chaos Theory", "Karma", "Complexity Sentinel"
 ], default=["Systems Thinking", "Chaos Theory", "Karma"])
@@ -91,27 +93,23 @@ selected_agents = st.multiselect("Select Agents to Run", [
 if "Systems Thinking" in selected_agents:
     st.header("🧩 Systems Thinking Agent")
     st.markdown("""
-        ### 🧩 Systems Thinking Agent – Interpretation Guide
+    ### 🧩 Systems Thinking Agent – Interpretation Guide
 
     - 🔗 **Dependency Analysis**:
-        - **Bottlenecks**: Nodes with multiple incoming edges (i.e., relied upon by many others)
-            - May indicate central dependencies or single points of failure
-        - **Isolated Nodes**: Nodes with no connections (no incoming or outgoing edges)
-            - Could be underutilized, deprecated, or pending integration
+        - **Bottlenecks**: Nodes with many incoming edges (e.g., tools used by many)
+        - **Isolated Nodes**: Nodes with no inbound/outbound edges
 
-    - 🧠 **Perspectives Analysis (P from DSRP)**:
-        - Represents how different roles or groups perceive a component
-        - Example: "Datadog" might be *Essential* to Observability but *Optional* for DevOps
-        - This simulation filters perspectives **only for viewing**, not for agent decision-making
-        - ⚠️ *Note*: In future AI-powered versions, agents will re-evaluate analysis dynamically based on selected perspective
+    - 🧠 **Perspectives Analysis**:
+        - Based on DSRP (Distinctions, Systems, Relationships, Perspectives)
+        - Each perspective shows how a role/team views a node
+        - ⚠️ *Note: this is filter-only, not dynamic yet — in AI, this would change agent behavior*
     """)
 
     systems_agent = SystemsThinkingAgent()
     systems_agent.load_from_dict(system_model)
 
     st.subheader("Dependency Analysis")
-    systems_results = systems_agent.analyze_dependencies()
-    st.json(systems_results)
+    st.json(systems_agent.analyze_dependencies())
 
     if st.checkbox("Show System Dependency Graph"):
         systems_agent.visualize_system()
@@ -120,13 +118,10 @@ if "Systems Thinking" in selected_agents:
     perspectives_results = systems_agent.analyze_perspectives_from_dict(system_model)
     perspective_options = ["All Perspectives"] + list(perspectives_results.keys())
     selected_perspective = st.selectbox("Select Perspective", perspective_options)
- 
     st.markdown(
-      "**⚠️ Note:** This dropdown does _not_ change the behavior of agents. "
-      "It only filters the view of perspectives. In a future implementation, AI agents will dynamically re-evaluate "
-      "each layer based on the selected perspective."
+        "**⚠️ Note:** This dropdown does *not* affect agent logic — it filters only. "
+        "In future AI-enhanced versions, perspectives will shape reasoning dynamically."
     )
-
     if selected_perspective == "All Perspectives":
         st.json(perspectives_results)
     else:
@@ -135,22 +130,24 @@ if "Systems Thinking" in selected_agents:
 # Chaos Theory
 if "Chaos Theory" in selected_agents:
     st.header("🌪 Chaos Theory Agent")
+    st.markdown("""
+    ### 🌪 Chaos Theory Agent – Interpretation Guide
+
+    - ✅ **Volatility Score** (0 to 1): Higher = more ripple risk
+      - Low (< 0.3): Stable
+      - Medium (0.3 – 0.7): Sensitive
+      - High (> 0.7): Fragile, may cascade failure
+
+    - ♻️ **Feedback Loops**:
+      - Cycles across nodes = amplification risk
+
+    - 🔁 **Volatile Nodes**:
+      - Shown in red (> 0.7) on chart
+    """)
+
     chaos_agent = ChaosTheoryAgent()
     chaos_agent.load_system(flat_graph, decay_factor=0.6)
     chaos_results = chaos_agent.analyze_instability()
-    st.markdown("""
-       ### 📉 Chaos Theory Agent – Interpretation Guide
-
-       - ✅ **Volatility Score**: Reflects how much instability or ripple impact a node introduces into the system (range: 0 to 1)
-           - Low (< 0.3): Stable node — unlikely to propagate risk
-           - Moderate (0.3 – 0.7): Sensitive — may trigger some ripple effects
-           - ⚠️ High (> 0.7): Volatile — changes here could affect multiple components
-       - ♻️ **Feedback Loops**: Circular dependencies between nodes that can amplify chaos
-           - Detected via graph cycles
-           - Their presence may suggest areas prone to runaway effects or tight coupling
-       - 🔁 **Volatile Nodes**: Nodes with volatility > 0.7 — shown in **red** on the bar chart (press checkbox to expand graph)      
-       """)
-
     st.json(chaos_results)
 
     if st.checkbox("Show Volatility Chart"):
@@ -168,23 +165,22 @@ if "Chaos Theory" in selected_agents:
 if "Karma" in selected_agents:
     st.header("🧘 Karma Agent")
     st.markdown("""
-      ### 🧘 Karma Agent – Interpretation Guide
+    ### 🧘 Karma Agent – Interpretation Guide
 
-      - ⚖️**Karma Rating**: Ethical classification of a node based on *intention × impact × activity*
-      - **Intention**: Human-labeled or inferred (e.g., Positive, Neutral, Negative)
-      - **Impact Score**: Reflects the breadth and severity of influence across the system
-           - Ranges from 0 (no impact) to 1 (broad, systemic influence)
-      - **Karma Rating**:
-           - 🔵 *Positive*: Aligned with intended outcomes and positive systemic influence
-           - ⚪ *Neutral*: Limited influence or mixed ethical load
-           - 🔴 *Negative*: High influence with questionable or unintended consequences
+    - ⚖️ **Karma Rating**: Combination of:
+        - *Intention*: Human or perspective-labeled value
+        - *Impact*: Ripple reach (from Chaos Theory)
+        - *Activity*: Event association
 
-      - 🔍 **Interpretation Tips**:
-           - Positive intention + low impact = may need better enablement
-           - Negative intention + high impact = risk for ethical fragility
-           - Karma shifts over time as nodes take on more influence (via ripple effects from other agents)
+    - 🔵 Positive: Helpful intent + high influence
+    - 🔴 Negative: Risky impact or harmful intent
+    - ⚪ Neutral: Mixed or uncertain
+
+    - Interpreting Karma:
+        - Positive intent + low impact = underleveraged
+        - Negative intent + high impact = ethical fragility
     """)
-    
+
     karma_agent = KarmaAgent()
     karma_agent.load_system(flat_graph, events=system_model.get("events", []))
     karma_results = karma_agent.report()
@@ -209,12 +205,25 @@ if "Karma" in selected_agents:
 # Complexity Sentinel
 if "Complexity Sentinel" in selected_agents:
     st.header("🕵️‍♂️ Complexity Sentinel Agent")
+
     if "previous_flat_graph" not in st.session_state:
-        st.session_state.previous_flat_graph = flat_graph
-    sentinel = ComplexitySentinelAgent()
-    sentinel_results = sentinel.detect_changes(
-        st.session_state.previous_flat_graph, flat_graph
-    )
+        st.session_state.previous_flat_graph = None
+
+    if st.session_state.previous_flat_graph is None:
+        st.info("No previous model loaded yet. Import a second model to detect structural changes.")
+        sentinel_results = {
+            "added_nodes": [],
+            "removed_nodes": [],
+            "added_edges": [],
+            "removed_edges": []
+        }
+    else:
+        sentinel = ComplexitySentinelAgent()
+        sentinel_results = sentinel.detect_changes(
+            st.session_state.previous_flat_graph, flat_graph
+        )
+
     st.subheader("Detected Changes")
     st.json(sentinel_results)
+
     st.session_state.previous_flat_graph = flat_graph
