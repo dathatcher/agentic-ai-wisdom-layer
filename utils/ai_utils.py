@@ -7,7 +7,7 @@ import hashlib
 import json
 
 # Optional: set this via environment variable
-openai.api_key = os.getenv("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")
+openai.api_key = os.getenv("")
 
 CACHE_FILE = "data/ai_cache.json"
 
