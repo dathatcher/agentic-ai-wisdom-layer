@@ -1,3 +1,4 @@
+
 # © 2025 David Thatcher. All rights reserved.
 # Wisdom Layer Simulation Framework
 # For license and reuse contact: david.austin.thatcher@gmail.com
@@ -21,82 +22,107 @@ class SystemsThinkingAgent:
         self.graph.clear()
         self.node_types.clear()
 
+        def unwrap(entry):
+            return entry.get("data", entry)
+
+        print("✅ Building graph from mental model...")
+
         # Tools
-        for tool in data.get("tools", []):
-            tool_name = tool["name"]
-            self.graph.add_node(tool_name)
-            self.node_types[tool_name] = "tool"
-            for app in tool["relationships"].get("monitors_applications", []):
-                self.graph.add_edge(tool_name, app)
-            for team in tool["relationships"].get("used_by_teams", []):
-                self.graph.add_edge(team, tool_name)
-            for integration in tool["relationships"].get("integrates_with", []):
-                self.graph.add_edge(tool_name, integration)
+        for raw in data.get("tools", []):
+            tool = unwrap(raw)
+            name = tool.get("name")
+            if not name:
+                continue
+            self.graph.add_node(name)
+            self.node_types[name] = "tool"
+            for app in tool.get("relationships", {}).get("monitors_applications", []):
+                self.graph.add_edge(name, app)
+            for team in tool.get("relationships", {}).get("used_by_teams", []):
+                self.graph.add_edge(team, name)
+            for integration in tool.get("relationships", {}).get("integrates_with", []):
+                self.graph.add_edge(name, integration)
 
         # Applications
-        for app in data.get("applications", []):
-            app_name = app["name"]
-            self.graph.add_node(app_name)
-            self.node_types[app_name] = "application"
+        for raw in data.get("applications", []):
+            app = unwrap(raw)
+            name = app.get("name")
+            if not name:
+                continue
+            self.graph.add_node(name)
+            self.node_types[name] = "application"
             for server in app.get("deployed_on", []):
-                self.graph.add_edge(app_name, server)
+                self.graph.add_edge(name, server)
             for monitor in app.get("monitored_by", []):
-                self.graph.add_edge(monitor, app_name)
+                self.graph.add_edge(monitor, name)
 
         # People
-        for person in data.get("people", []):
-            person_name = person["name"]
-            self.graph.add_node(person_name)
-            self.node_types[person_name] = "person"
+        for raw in data.get("people", []):
+            person = unwrap(raw)
+            name = person.get("name")
+            if not name:
+                continue
+            self.graph.add_node(name)
+            self.node_types[name] = "person"
             for tool in person.get("uses_tools", []):
-                self.graph.add_edge(person_name, tool)
+                self.graph.add_edge(name, tool)
             for team in person.get("teams", []):
-                self.graph.add_edge(person_name, team)
+                self.graph.add_edge(name, team)
 
         # Servers
-        for server in data.get("servers", []):
-            server_name = server["hostname"]
-            self.graph.add_node(server_name)
-            self.node_types[server_name] = "server"
+        for raw in data.get("servers", []):
+            server = unwrap(raw)
+            name = server.get("hostname")
+            if not name:
+                continue
+            self.graph.add_node(name)
+            self.node_types[name] = "server"
             for app in server.get("runs", []):
-                self.graph.add_edge(server_name, app)
+                self.graph.add_edge(name, app)
 
         # Teams
-        for team in data.get("teams", []):
-            team_name = team["name"]
-            self.graph.add_node(team_name)
-            self.node_types[team_name] = "team"
+        for raw in data.get("teams", []):
+            team = unwrap(raw)
+            name = team.get("name")
+            if not name:
+                continue
+            self.graph.add_node(name)
+            self.node_types[name] = "team"
             for member in team.get("members", []):
-                self.graph.add_edge(team_name, member)
+                self.graph.add_edge(name, member)
             for tool in team.get("responsibilities", {}).get("owns_tools", []):
-                self.graph.add_edge(team_name, tool)
+                self.graph.add_edge(name, tool)
             for app in team.get("responsibilities", {}).get("monitors_apps", []):
-                self.graph.add_edge(team_name, app)
+                self.graph.add_edge(name, app)
             for integration in team.get("responsibilities", {}).get("integrates_with", []):
-                self.graph.add_edge(team_name, integration)
+                self.graph.add_edge(name, integration)
             for app in team.get("responsibilities", {}).get("owns_apps", []):
-                self.graph.add_edge(team_name, app)
-            for used_tool in team.get("responsibilities", {}).get("uses_tools", []):
-                self.graph.add_edge(team_name, used_tool)
-            for responded_app in team.get("responsibilities", {}).get("responds_to", []):
-                self.graph.add_edge(team_name, responded_app)
+                self.graph.add_edge(name, app)
+            for tool in team.get("responsibilities", {}).get("uses_tools", []):
+                self.graph.add_edge(name, tool)
+            for app in team.get("responsibilities", {}).get("responds_to", []):
+                self.graph.add_edge(name, app)
 
         # Events
-        for event in data.get("events", []):
-            event_id = event["id"]
-            self.graph.add_node(event_id)
-            self.node_types[event_id] = "event"
+        for raw in data.get("events", []):
+            event = unwrap(raw)
+            name = event.get("id")
+            if not name:
+                continue
+            self.graph.add_node(name)
+            self.node_types[name] = "event"
             if "initiator" in event:
-                self.graph.add_edge(event["initiator"], event_id)
+                self.graph.add_edge(event["initiator"], name)
             if "related_to" in event:
-              related = event["related_to"]
-            if isinstance(related, list):
-                for target in related:
-                 self.graph.add_edge(event_id, target)
-            else:
-               self.graph.add_edge(event_id, related)
+                related = event["related_to"]
+                if isinstance(related, list):
+                    for target in related:
+                        self.graph.add_edge(name, target)
+                else:
+                    self.graph.add_edge(name, related)
             for sub in event.get("sub_events", []):
-                self.graph.add_edge(event_id, sub)
+                self.graph.add_edge(name, sub)
+
+        print(f"✅ Graph built: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges")
 
     def analyze_dependencies(self):
         bottlenecks = [node for node, deg in self.graph.in_degree() if deg > 1]
@@ -135,15 +161,10 @@ class SystemsThinkingAgent:
         )
         st.pyplot(fig)
 
-    def analyze_perspectives(self, json_filepath):
-        with open(json_filepath) as f:
-            data = json.load(f)
-        return self.analyze_perspectives_from_dict(data)
-
     def analyze_perspectives_from_dict(self, data):
         perspectives_analysis = {}
-
-        for tool in data.get("tools", []):
+        for raw in data.get("tools", []):
+            tool = raw.get("data", raw)
             for perspective, evaluation in tool.get("perspectives", {}).items():
                 perspectives_analysis.setdefault(perspective, []).append({
                     "component": tool["name"],
@@ -151,7 +172,8 @@ class SystemsThinkingAgent:
                     "evaluation": evaluation
                 })
 
-        for person in data.get("people", []):
+        for raw in data.get("people", []):
+            person = raw.get("data", raw)
             role_perspective = person.get("role", "General")
             perspectives_analysis.setdefault(role_perspective, []).append({
                 "component": person["name"],
