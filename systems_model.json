@@ -299,7 +299,7 @@
         ],
         "sub_events": [
           "JIRA-1234",
-          "COMMIT-a1b2c3",
+          "COMMIT-a",
           "JENKINS-049"
         ]
       },
@@ -415,7 +415,7 @@
     },
     {
       "data": {
-        "id": "COMMIT-a1b2c3",
+        "id": "COMMIT-a",
         "type": "commit",
         "tool": "GitHub",
         "initiator": "Jane Doe",
