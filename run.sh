@@ -1,1 +1,1 @@
-streamlit run app.py
+streamlit run llm_dashboard.py

@@ -1,19 +1,21 @@
-
-# © 2025 David Thatcher. All rights reserved.
-# Wisdom Layer LLM-Powered Dashboard – Refactored
+# app.py
 
 import streamlit as st
 import json
 import os
-import re
-from agents.systems_thinking_agent_llm import SystemsThinkingAgentLLM
-import networkx as nx
 import matplotlib.pyplot as plt
+
+from agents.systems_thinking_agent import SystemsThinkingAgent
+from agents.chaos_theory_agent import ChaosTheoryAgent
+from agents.karma_agent import KarmaAgent
+from agents.complexity_sentinel_agent import ComplexitySentinelAgent
+from agents.complexity_sentinel_agent_llm import ComplexitySentinelAgentLLM
+from agents.meta_contexts import get_meta_context
 
 st.set_page_config(page_title="LLM Wisdom Layer Dashboard", layout="wide")
 st.title("🧠 LLM-Powered Wisdom Layer Dashboard")
 
-# Upload or load default mental model
+# Upload JSON
 uploaded_file = st.file_uploader("Upload your mental model (systems_model.json)", type="json")
 if uploaded_file:
     system_model = json.load(uploaded_file)
@@ -26,105 +28,55 @@ else:
         st.warning("Please upload a system model to continue.")
         st.stop()
 
-# Initialize agent
-agent = SystemsThinkingAgentLLM(system_context="IT Organization")
+if "previous_flat_graph" not in st.session_state:
+    st.session_state.previous_flat_graph = None
 
-# Run Systems Thinking Agent
-if st.button("Run Systems Thinking Agent"):
-    with st.spinner("Running agent with GPT-4..."):
-        output = agent.analyze(system_model)
+# Agent Selection
+agent_choice = st.selectbox("Choose an Agent", ["Systems Thinking", "Chaos Theory", "Karma", "Complexity Sentinel"])
+user_query = st.text_input("Ask the Complexity Sentinel Agent a question:")
 
-    st.subheader("🧠 Agent Output (Parsed)")
-    cleaned_output = re.sub(r"^```json\n?|```$", "", output.strip(), flags=re.MULTILINE)
+if st.button("Submit Question"):
+    with st.spinner(f"Running {agent_choice} Agent with Smart Prompt..."):
+        if agent_choice == "Complexity Sentinel":
+            agent = ComplexitySentinelAgentLLM()
+            meta_context = get_meta_context(system_model)
+            result = agent.smart_prompt(system_model, st.session_state.previous_flat_graph, meta_context, user_query)
 
-    try:
-        parsed = json.loads(cleaned_output)
-        st.json(parsed)
-    except Exception as e:
-        st.warning(f"Agent response is not valid JSON. Showing raw output.\n{e}")
-        st.text(output)
+            st.subheader("🔍 Agent Insight")
+            try:
+                parsed = json.loads(result)
+                st.json(parsed)
+            except:
+                st.write(result)
 
-# Optional: Visualize structure as graph
+# Run classic agents
+if agent_choice == "Systems Thinking":
+    agent = SystemsThinkingAgent()
+    agent.load_from_dict(system_model)
+    st.subheader("Dependency Analysis")
+    st.json(agent.analyze_dependencies())
+    st.subheader("Perspectives Analysis")
+    st.json(agent.analyze_perspectives_from_dict(system_model))
 
-def build_graph_from_model(system_model):
-    import streamlit as st
-    import networkx as nx
+elif agent_choice == "Chaos Theory":
+    agent = ChaosTheoryAgent()
+    flat_graph = agent.flatten_model(system_model)
+    agent.load_system(flat_graph)
+    st.subheader("Chaos Insights")
+    st.json(agent.analyze_instability())
 
-    G = nx.DiGraph()
+elif agent_choice == "Karma":
+    agent = KarmaAgent()
+    flat_graph = agent.flatten_model(system_model)
+    agent.load_system(flat_graph, events=system_model.get("events", []))
+    st.subheader("Karma Assessment")
+    st.json(agent.report())
 
-    def unwrap(e):
-        return e.get("data", e) if isinstance(e, dict) else {}
-
-    st.write("🔍 Building graph from top-level distinctions...")
-
-    for category, entities in system_model.items():
-        if not isinstance(entities, list):
-            continue
-        for raw in entities:
-            item = unwrap(raw)
-
-            # Try to get an identifier for the node
-            name = (
-                item.get("name") or
-                item.get("hostname") or
-                item.get("id")
-            )
-            if not name:
-                st.write(f"⚠️ Skipping unnamed entry in {category}: {item}")
-                continue
-
-            G.add_node(name, type=category)
-         #   st.write(f"✅ Added node [{category}]: {name}")
-
-            # Edges from nested maps (e.g. relationships, responsibilities)
-            for k in ("relationships", "responsibilities"):
-                for rels in item.get(k, {}).values():
-                    for t in rels:
-                        G.add_edge(name, t)
-
-            # Edges from known relationship lists or strings
-            for key in ("monitored_by", "uses_tools", "teams", "runs", "deployed_on", "owned_by"):
-                targets = item.get(key)
-                if isinstance(targets, list):
-                    for t in targets:
-                        G.add_edge(name, t)
-                elif isinstance(targets, str):
-                    G.add_edge(name, targets)
-
-            # Special: Events (initiator, related_to, sub_events)
-            if "initiator" in item and "id" in item:
-                G.add_edge(item["initiator"], item["id"])
-            if "related_to" in item and "id" in item:
-                related = item["related_to"]
-                if isinstance(related, list):
-                    for r in related:
-                        G.add_edge(item["id"], r)
-                else:
-                    G.add_edge(item["id"], related)
-            if "sub_events" in item and "id" in item:
-                for sub in item.get("sub_events", []):
-                    G.add_edge(item["id"], sub)
-
-    st.write(f"✅ Graph complete: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges.")
-    return G
-
-if st.checkbox("🔗 Show System Graph"):
-    st.markdown("This view shows all connected components from your mental model.")
-    G = build_graph_from_model(system_model)
-    st.write(f"Graph contains {G.number_of_nodes()} nodes and {G.number_of_edges()} edges.")
-
-    if G.number_of_nodes() == 0:
-        st.warning("No nodes found. Ensure your model is structured and populated correctly.")
-    else:
-        pos = nx.kamada_kawai_layout(G)
-        node_types = nx.get_node_attributes(G, "type")
-        colors = {
-            "tool": "dodgerblue", "application": "lightgray", "person": "lightgreen",
-            "server": "plum", "team": "orange", "event": "gold"
-        }
-        node_colors = [colors.get(node_types.get(n, ""), "skyblue") for n in G.nodes]
-
-        fig, ax = plt.subplots(figsize=(12, 8))
-        nx.draw(G, pos, ax=ax, with_labels=True, node_color=node_colors,
-                node_size=2500, font_size=9, arrows=True)
-        st.pyplot(fig)
+# Update previous graph snapshot
+if agent_choice == "Complexity Sentinel":
+    sentinel = ComplexitySentinelAgent()
+    flat_graph = sentinel.flatten_model(system_model)
+    if st.session_state.previous_flat_graph:
+        st.subheader("Detected Changes")
+        st.json(sentinel.detect_changes(st.session_state.previous_flat_graph, flat_graph))
+    st.session_state.previous_flat_graph = flat_graph

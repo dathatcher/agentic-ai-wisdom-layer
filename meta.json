@@ -1,0 +1,15 @@
+{
+  "system_name": "IT Organization",
+  "purpose": "To understand the complexity, fragility and feedback loops in our IT environment.",
+  "potential_blind_spots": [
+    "Non-linear interdependencies between system components that might be overlooked,",
+    "Shadow IT and non-compliant use of technology by staff,",
+    "Underestimation of external threats or disruptions (e.g., cyber-attacks, supplier failures),",
+    "Scalability issues as the IT landscape evolves or in response to rapid shifts in demand,"
+  ],
+  "boundary_concerns": [
+    "Defining the perimeter of IT infrastructure in a cloud and multi-vendor environment,",
+    "Balancing between comprehensive data capture for monitoring and respecting user privacy,",
+    "Integration challenges with legacy systems and emerging technologies."
+  ]
+}
