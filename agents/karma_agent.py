@@ -1,77 +1,55 @@
 # © 2025 David Thatcher. All rights reserved.
-# Wisdom Layer Simulation Framework
-# For license and reuse contact: david.austin.thatcher@gmail.com
+# Wisdom Layer Production Framework – Karma Agent (LLM Powered)
 
-import random
+from agents.agent_base import AgentBase
 
-class KarmaAgent:
-    def __init__(self):
-        self.impact_scores = {}
+class KarmaAgentLLM(AgentBase):
+    def __init__(self, system_context="IT Organization"):
+        super().__init__(role="Karma Agent", system_context=system_context)
 
-    def load_system(self, graph, events=None):
-        self.impact_scores.clear()
-        event_counts = {}
+    def smart_prompt(self, system_model, meta_context, user_query):
+        instructions = f"""
+You are the Karma Agent in a Wisdom Layer AI system.
 
-        # Count how many times a node appears in events
-        if events:
-            for event in events:
-                initiator = event.get("initiator")
-                if initiator:
-                    event_counts[initiator] = event_counts.get(initiator, 0) + 1
-                related = event.get("related_to")
-                if isinstance(related, list):
-                 for r in related:
-                  event_counts[r] = event_counts.get(r, 0) + 1
-                elif related:
-                  event_counts[related] = event_counts.get(related, 0) + 1
-                for sub in event.get("sub_events", []):
-                    event_counts[sub] = event_counts.get(sub, 0) + 1
+Your job is to assess the moral alignment, ethical fragility, and underutilized intentions across this system.
 
-        for node, edges in graph.items():
-            node_type = self.infer_type(node, edges)
-            base_intention = random.choice(["Positive", "Neutral", "Negative"])
-            base_impact = random.uniform(0.1, 1.0)
+---
 
-            # Teams get higher impact if connected to many critical nodes
-            if node_type == "team":
-                connection_weight = len(edges)
-                base_impact += 0.05 * connection_weight
+### 👁 Guidance for Karma Evaluation:
 
-            # Adjust impact based on event participation
-            if node in event_counts:
-                base_impact += 0.05 * min(event_counts[node], 6)  # cap bonus at +0.3
+1. **Intent vs. Impact**
+   - Positive intent + low impact = underleveraged
+   - Negative intent + high impact = ethically risky
+   - No intent data = flag as missing or misclassified
 
-            impact = min(base_impact, 1.0)
-            rating = self.score_to_rating(base_intention, impact)
+2. **Moral Feedback Loops**
+   - Does an actor repeatedly trigger high-impact changes?
+   - Could small actions lead to systemic consequences?
 
-            self.impact_scores[node] = {
-                "type": node_type,
-                "intention": base_intention,
-                "impact_score": round(impact, 2),
-                "karma_rating": rating
-            }
+3. **Relationship-Based Influence**
+   - If a TEAM owns a TOOL, and that TOOL affects APPLICATIONS → the TEAM inherits moral responsibility.
+   - If a PERSON uses a TOOL that is critical or volatile → they may have invisible leverage.
 
-    def infer_type(self, node, edges):
-        if "Team" in node or "team" in node:
-            return "team"
-        elif "App" in node or "Service" in node:
-            return "application"
-        elif "VM" in node:
-            return "server"
-        elif " " in node:
-            return "person"
-        elif node.startswith(("JIRA-", "COMMIT", "JENKINS", "RELEASE")):
-            return "event"
-        else:
-            return "tool"
+4. **Call Out Anomalies**
+   - Missing monitoring links (e.g., team owns tool, but isn’t using it)
+   - Silos or duplication
+   - Orphans with high influence but no traceable ownership
 
-    def score_to_rating(self, intention, impact):
-        if intention == "Positive" and impact > 0.6:
-            return "Positive"
-        elif intention == "Negative" and impact > 0.4:
-            return "Negative"
-        else:
-            return "Neutral"
+---
 
-    def report(self):
-        return self.impact_scores
+### 🧭 Output Format (if appropriate):
+- Actor: [Name]
+- Role/Type: [Team, Person, Tool...]
+- Intent: [Positive/Neutral/Negative]
+- Impact Summary: [Short reasoning]
+- Ethical Rating: [High/Low Risk or Positive/Neutral/Negative]
+- Comments: [Optional recommendations or concerns]
+
+---
+
+Use both the `system_model` and `meta_context` (mental model metadata) when answering.
+
+Now evaluate:
+{user_query}
+"""
+        return self.prompt(system_model, instructions)
