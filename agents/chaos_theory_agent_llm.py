@@ -2,6 +2,7 @@
 # Wisdom Layer Production Framework – Chaos Theory Agent
 
 from agents.agent_base import AgentBase
+from utils.model_filter import summarize_model_for_agent
 import openai
 import os
 import json
@@ -34,7 +35,9 @@ Be specific and justify results.
     def smart_prompt(self, system_model, meta_context, user_question):
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-        system_facts = json.dumps(system_model, indent=2)
+        # Safely summarize model to avoid token overflow
+        lite_model = summarize_model_for_agent(system_model, agent_type="chaos", max_per_category=10)
+        system_facts = json.dumps(lite_model, indent=2)
         meta_facts = json.dumps(meta_context, indent=2)
 
         system_context = f"""
@@ -59,8 +62,14 @@ Return a structured answer in JSON or bullet points. Explain ripple risk and sys
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are a Chaos Theory analyst for complex IT systems, modeling volatility, nonlinearity, and ripple propagation."},
-                {"role": "user", "content": full_prompt}
+                {
+                    "role": "system",
+                    "content": "You are a Chaos Theory analyst for complex IT systems, modeling volatility, nonlinearity, and ripple propagation."
+                },
+                {
+                    "role": "user",
+                    "content": full_prompt
+                }
             ],
             temperature=0.4
         )

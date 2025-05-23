@@ -52,19 +52,31 @@ def flatten_model(system_model):
 st.set_page_config(page_title="LLM Wisdom Layer Dashboard", layout="wide")
 st.title("🧠 LLM-Powered Wisdom Layer Dashboard")
 
-# Upload JSON
+# Upload JSON and manage model history
 uploaded_file = st.file_uploader("Upload your mental model (systems_model.json)", type="json")
 if uploaded_file:
-    system_model = json.load(uploaded_file)
+    new_model = json.load(uploaded_file)
+
+    if "current_model" not in st.session_state:
+        st.session_state.current_model = new_model
+        st.session_state.previous_model = None
+    else:
+        st.session_state.previous_model = st.session_state.current_model
+        st.session_state.current_model = new_model
+
+    system_model = st.session_state.current_model
 else:
     default_path = "systems_model.json"
     if os.path.exists(default_path):
         with open(default_path) as f:
             system_model = json.load(f)
+        st.session_state.current_model = system_model
+        st.session_state.previous_model = None
     else:
         st.warning("Please upload a system model to continue.")
         st.stop()
 
+# Track flat graph fallback for non-LLM agents
 if "previous_flat_graph" not in st.session_state:
     st.session_state.previous_flat_graph = None
 
@@ -123,7 +135,12 @@ if st.button("Submit Question"):
             result = agent.smart_prompt(system_model, meta_context, user_query)
         elif agent_choice == "Complexity Sentinel":
             agent = ComplexitySentinelAgentLLM()
-            result = agent.smart_prompt(system_model, st.session_state.previous_flat_graph, meta_context, user_query)
+            result = agent.smart_prompt(
+                current_model=st.session_state.current_model,
+                previous_model=st.session_state.previous_model,
+                meta_context=meta_context,
+                user_query=user_query
+            )
 
         st.subheader("🔍 Agent Insight")
         try:
