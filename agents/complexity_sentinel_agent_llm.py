@@ -19,13 +19,23 @@ class ComplexitySentinelAgentLLM(AgentBase):
         lite_previous = summarize_model_for_agent(previous_model, agent_type="sentinel", max_per_category=10)
 
         instructions = f"""
-You are the Complexity Sentinel Agent. Your role is to:
-  1. Detect and interpret **structural changes** between a previous and current system model.
-  2. Identify **fragility zones** caused by added or removed nodes and relationships.
-  3. Highlight **emergent complexity patterns** or entropy spikes.
-  4. Integrate both **mental model data** and **meta reasoning** for a holistic view.
+You are the Complexity Sentinel Agent. You detect **structural changes** and **emerging complexity** in a system's evolution.
 
-Use this structure in JSON output:
+You are provided two models:
+- `previous`: the earlier mental model snapshot
+- `current`: the new snapshot
+Each is organized by system categories (e.g., Infrastructure, Applications, Teams). Each contains arrays of structured data and optional reasoning.
+
+Your tasks:
+1. Compare both models and identify structural diffs:
+   - Nodes added or removed in any category
+   - Changes in relationships or properties
+2. Detect any fragility:
+   - e.g., new nodes with many dependencies, removals breaking existing links
+3. Highlight complexity or risk signals:
+   - Increased node count, entropy, missing connections
+4. Combine findings into this JSON structure:
+
 {{
   "change_summary": [{{"type": "added_node|removed_node|added_edge|removed_edge", "entity": "..."}}],
   "fragile_areas": ["..."],
@@ -34,8 +44,8 @@ Use this structure in JSON output:
   "llm_reasoning": "..."
 }}
 
-Your system context is: {self.system_context}.
-The user question is: {user_query}
+System context: {self.system_context}
+User question: {user_query}
 """
 
         return self.prompt({
