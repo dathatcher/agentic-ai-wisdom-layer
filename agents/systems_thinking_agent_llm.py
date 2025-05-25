@@ -63,4 +63,5 @@ Use DSRP (Distinctions, Systems, Relationships, Perspectives) if applicable.
             ],
             temperature=0.3
         )
-        return response.choices[0].message.content.strip()
+        return response.choices[0].message.content if hasattr(response.choices[0], "message") else response.choices[0].text
+

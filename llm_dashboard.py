@@ -75,19 +75,19 @@ user_query = st.text_input("Ask the selected agent a question:", value=sample)
 # Run Smart Prompt
 if st.button("Submit Question"):
     with st.spinner(f"Running {agent_choice} Agent with Smart Prompt..."):
-        meta_context = get_meta_context(current_model)
+        meta_context = get_meta_context(st.session_state["current_model"])
 
         if agent_choice == "Systems Thinking":
             agent = SystemsThinkingAgentLLM()
-            result = agent.smart_prompt(current_model, meta_context, user_query)
+            result = agent.smart_prompt(st.session_state["current_model"], meta_context, user_query)
 
         elif agent_choice == "Chaos Theory":
             agent = ChaosTheoryAgentLLM()
-            result = agent.smart_prompt(current_model, meta_context, user_query)
+            result = agent.smart_prompt(st.session_state["current_model"], meta_context, user_query)
 
         elif agent_choice == "Karma":
             agent = KarmaAgentLLM()
-            result = agent.smart_prompt(current_model, meta_context, user_query)
+            result = agent.smart_prompt(st.session_state["current_model"], meta_context, user_query)
 
         elif agent_choice == "Complexity Sentinel":
             agent = ComplexitySentinelAgentLLM()
