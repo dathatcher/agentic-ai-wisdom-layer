@@ -3,75 +3,36 @@
 
 from agents.agent_base import AgentBase
 from utils.model_filter import summarize_model_for_agent
-import openai
-import os
 import json
 
 class ChaosTheoryAgentLLM(AgentBase):
     def __init__(self, system_context="IT Organization"):
         super().__init__(role="Chaos Theory Agent", system_context=system_context)
 
-    def analyze(self, system_model):
-        custom_instructions = """
-- Your role is to apply principles of Chaos Theory to assess systemic fragility, instability, and feedback loops.
-- You should evaluate:
-  1. 🌪 Volatility Nodes: elements where small changes could cause ripple effects
-  2. ♻️ Feedback Loops: cycles of influence or dependency
-  3. ⚠️ Fragile Points: nodes or connections highly susceptible to perturbation
-
-- Use terms from complex adaptive systems, including non-linearity, sensitivity to initial conditions, and path dependency.
-
-- Output must be in structured JSON with:
-{
-  "volatile_nodes": [...],
-  "feedback_loops": [...],
-  "fragile_points": [...]
-}
-
-Be specific and justify results.
-"""
-        return self.prompt(system_model, custom_instructions)
-
-    def smart_prompt(self, system_model, meta_context, user_question):
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-        # Safely summarize model to avoid token overflow
-        lite_model = summarize_model_for_agent(system_model, agent_type="chaos", max_per_category=10)
-        system_facts = json.dumps(lite_model, indent=2)
+    def smart_prompt(self, system_model, meta_context, user_query, diff_summary=None):
+        lite_model = summarize_model_for_agent(system_model, agent_type="chaos", max_per_category=20)
         meta_facts = json.dumps(meta_context, indent=2)
+        diff_facts = json.dumps(diff_summary, indent=2) if diff_summary else "[]"
 
-        system_context = f"""
-You are a Chaos Theory Agent analyzing a complex adaptive system in an IT organization.
-This agent focuses on instability, ripple risk, nonlinear feedback, and emergent behavior.
+        instructions = f"""
+As the Chaos Theory Agent, your task is to assess systemic volatility, feedback amplification, and tipping points.
 
-System model:
-{system_facts}
+Consider:
+- Propagation of failure or stress
+- Small causes with large effects
+- Node volatility and ripple potential
+- Hidden interdependencies and chaos amplifiers
 
-Metadata (heuristics, domain assumptions, volatility markers):
+System Model:
+{json.dumps(lite_model, indent=2)}
+
+Meta Context:
 {meta_facts}
+
+Recent Changes (diff_summary):
+{diff_facts}
+
+Now answer:
+{user_query}
 """
-
-        full_prompt = f"""{system_context}
-
-Now answer this question:
-{user_question}
-
-Return a structured answer in JSON or bullet points. Explain ripple risk and systemic instability if applicable.
-"""
-
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a Chaos Theory analyst for complex IT systems, modeling volatility, nonlinearity, and ripple propagation."
-                },
-                {
-                    "role": "user",
-                    "content": full_prompt
-                }
-            ],
-            temperature=0.4
-        )
-
-        return response.choices[0].message.content.strip()
+        return self.prompt(lite_model, instructions)

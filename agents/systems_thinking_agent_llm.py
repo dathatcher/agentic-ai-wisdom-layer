@@ -27,53 +27,40 @@ class SystemsThinkingAgentLLM(AgentBase):
   "perspective_conflicts": [...],
   "feedback_loops": [...]
 }
-
-Be as specific and structured as possible.
 """
         return self.prompt(system_model, custom_instructions)
 
-    def smart_prompt(self, system_model, meta_context, user_question):
+    def smart_prompt(self, system_model, meta_context, user_question, diff_summary=None):
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-        # Safely summarize large model input
-        lite_model = summarize_model_for_agent(system_model, agent_type="systems", max_per_category=10)
+        lite_model = summarize_model_for_agent(system_model, agent_type="systems", max_per_category=20)
         system_facts = json.dumps(lite_model, indent=2)
         meta_facts = json.dumps(meta_context, indent=2)
+        diff_facts = json.dumps(diff_summary, indent=2) if diff_summary else "[]"
 
-        system_context = f"""
+        full_prompt = f"""
 You are a Systems Thinking Agent analyzing an IT organization.
-Below is the structured systems model:
+
+Here is the current systems model:
 {system_facts}
 
-And here is metadata describing architectural context and domain-specific heuristics:
+Here is the meta-context:
 {meta_facts}
-"""
 
-        full_prompt = f"""{system_context}
+Recent structural changes (diff_summary):
+{diff_facts}
 
 Now, answer the following question:
 {user_question}
 
-Provide a clear and structured response. If applicable, include:
-- Key nodes or subsystems involved
-- Reasoning using distinctions, relationships, or perspectives (DSRP)
-- Any implications for systems design or behavior
-Return the result as formatted JSON or bullet points where applicable.
+Use DSRP (Distinctions, Systems, Relationships, Perspectives) if applicable.
 """
 
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a systems thinking assistant analyzing complex adaptive systems."
-                },
-                {
-                    "role": "user",
-                    "content": full_prompt
-                }
+                {"role": "system", "content": "You are a systems thinking assistant analyzing complex adaptive systems."},
+                {"role": "user", "content": full_prompt}
             ],
             temperature=0.3
         )
-
         return response.choices[0].message.content.strip()
