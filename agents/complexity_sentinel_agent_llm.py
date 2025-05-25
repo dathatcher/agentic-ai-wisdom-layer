@@ -10,13 +10,12 @@ class ComplexitySentinelAgentLLM(AgentBase):
         super().__init__(role="Complexity Sentinel Agent", system_context=system_context)
 
     def smart_prompt(self, current_model, previous_model, meta_context, user_query):
-        # ✅ Handle first-run when no previous model is available
         if previous_model is None:
             return "🕰️ No previous model loaded. Please upload a second model to compare system evolution."
 
-        # ✅ Safely summarize both models to avoid token overflow
-        lite_current = summarize_model_for_agent(current_model, agent_type="sentinel", max_per_category=10)
-        lite_previous = summarize_model_for_agent(previous_model, agent_type="sentinel", max_per_category=10)
+        lite_current = flatten_for_diff(current_model)
+        lite_previous = flatten_for_diff(previous_model)
+        diff_summary = compute_diff_summary(lite_current, lite_previous)
 
         instructions = f"""
 You are the Complexity Sentinel Agent. You detect **structural changes** and **emerging complexity** in a system's evolution.
@@ -26,21 +25,21 @@ You are provided two models:
 - `current`: the new snapshot
 Each is organized by system categories (e.g., Infrastructure, Applications, Teams). Each contains arrays of structured data and optional reasoning.
 
+You are also given a machine-generated `diff_summary` array containing changes.
+
 Your tasks:
-1. Compare both models and identify structural diffs:
-   - Nodes added or removed in any category
-   - Changes in relationships or properties
+1. Summarize and interpret the differences.
 2. Detect any fragility:
    - e.g., new nodes with many dependencies, removals breaking existing links
 3. Highlight complexity or risk signals:
    - Increased node count, entropy, missing connections
-4. Combine findings into this JSON structure:
+4. Return a structured analysis in this JSON format:
 
 {{
-  "change_summary": [{{"type": "added_node|removed_node|added_edge|removed_edge", "entity": "..."}}],
-  "fragile_areas": ["..."],
-  "complexity_risks": ["..."],
-  "insights": ["..."],
+  "change_summary": [...],
+  "fragile_areas": [...],
+  "complexity_risks": [...],
+  "insights": [...],
   "llm_reasoning": "..."
 }}
 
@@ -51,5 +50,34 @@ User question: {user_query}
         return self.prompt({
             "previous": lite_previous,
             "current": lite_current,
+            "diff_summary": diff_summary,
             "meta": meta_context
         }, instructions)
+
+def flatten_for_diff(model):
+    clean = {}
+    for category, items in model.items():
+        clean[category] = []
+        for item in items:
+            if isinstance(item, dict) and "data" in item:
+                clean[category].append(item["data"])
+            else:
+                clean[category].append(item)
+    return clean
+
+def compute_diff_summary(current, previous):
+    summary = []
+
+    for category in current:
+        current_items = {json.dumps(e, sort_keys=True) for e in current.get(category, [])}
+        previous_items = {json.dumps(e, sort_keys=True) for e in previous.get(category, [])}
+
+        added = current_items - previous_items
+        removed = previous_items - current_items
+
+        for item in added:
+            summary.append({"type": "added_node", "entity": json.loads(item)})
+        for item in removed:
+            summary.append({"type": "removed_node", "entity": json.loads(item)})
+
+    return summary

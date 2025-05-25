@@ -149,38 +149,35 @@ if st.button("Submit Question"):
         except:
             st.write(result)
 
-# Fallback to classic agents if no query is submitted
+# Fallback to LLM agents with default query if no user_query provided
 if not user_query:
-    flat_graph = flatten_model(system_model)
+    meta_context = get_meta_context(system_model)
 
     if agent_choice == "Systems Thinking":
-        from agents.systems_thinking_agent import SystemsThinkingAgent
-        agent = SystemsThinkingAgent()
-        agent.load_from_dict(system_model)
-        st.subheader("Dependency Analysis")
-        st.json(agent.analyze_dependencies())
-        st.subheader("Perspectives Analysis")
-        st.json(agent.analyze_perspectives_from_dict(system_model))
+        agent = SystemsThinkingAgentLLM()
+        result = agent.smart_prompt(system_model, meta_context, "Show structural bottlenecks.")
+        st.subheader("🔍 Agent Insight")
+        st.json(json.loads(result))
 
     elif agent_choice == "Chaos Theory":
-        from agents.chaos_theory_agent import ChaosTheoryAgent
-        agent = ChaosTheoryAgent()
-        agent.load_system(flat_graph)
-        st.subheader("Chaos Insights")
-        st.json(agent.analyze_instability())
+        agent = ChaosTheoryAgentLLM()
+        result = agent.smart_prompt(system_model, meta_context, "Highlight the most volatile parts of the system.")
+        st.subheader("🔍 Agent Insight")
+        st.json(json.loads(result))
 
     elif agent_choice == "Karma":
-        from agents.karma_agent import KarmaAgent
-        agent = KarmaAgent()
-        agent.load_system(flat_graph, events=system_model.get("events", []))
-        st.subheader("Karma Assessment")
-        st.json(agent.report())
+        agent = KarmaAgentLLM()
+        result = agent.smart_prompt(system_model, meta_context, "Analyze ethical fragility across actors.")
+        st.subheader("🔍 Agent Insight")
+        st.json(json.loads(result))
 
     elif agent_choice == "Complexity Sentinel":
-        from agents.complexity_sentinel_agent import ComplexitySentinelAgent
-        sentinel = ComplexitySentinelAgent()
-        new_graph = flatten_model(system_model)
-        if st.session_state.previous_flat_graph:
-            st.subheader("Detected Changes")
-            st.json(sentinel.detect_changes(st.session_state.previous_flat_graph, new_graph))
-        st.session_state.previous_flat_graph = new_graph
+        agent = ComplexitySentinelAgentLLM()
+        result = agent.smart_prompt(
+            current_model=st.session_state.current_model,
+            previous_model=st.session_state.previous_model,
+            meta_context=meta_context,
+            user_query="What changes or complexity emerged?"
+        )
+        st.subheader("🔍 Agent Insight")
+        st.json(json.loads(result))
