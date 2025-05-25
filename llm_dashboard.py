@@ -11,81 +11,33 @@ from agents.karma_agent_llm import KarmaAgentLLM
 from agents.complexity_sentinel_agent_llm import ComplexitySentinelAgentLLM
 from agents.meta_contexts import get_meta_context
 
-# Inline version of flatten_model to avoid import issues
-def flatten_model(system_model):
-    graph = {}
-    for tool in system_model.get("tools", []):
-        graph[tool["name"]] = []
-        for targets in tool.get("relationships", {}).values():
-            graph[tool["name"]].extend(targets)
-    for app in system_model.get("applications", []):
-        graph.setdefault(app["name"], [])
-        graph[app["name"]].extend(app.get("deployed_on", []))
-        graph[app["name"]].extend(app.get("monitored_by", []))
-    for person in system_model.get("people", []):
-        graph[person["name"]] = person.get("uses_tools", [])
-        for team in person.get("teams", []):
-            graph[person["name"]].append(team)
-    for server in system_model.get("servers", []):
-        graph.setdefault(server["hostname"], [])
-        graph[server["hostname"]].extend(server.get("runs", []))
-    for team in system_model.get("teams", []):
-        graph.setdefault(team["name"], [])
-        for member in team.get("members", []):
-            graph[team["name"]].append(member)
-        for resp_type, targets in team.get("responsibilities", {}).items():
-            for target in targets:
-                graph[team["name"]].append(target)
-    for event in system_model.get("events", []):
-        graph[event["id"]] = []
-        if "initiator" in event:
-            graph.setdefault(event["initiator"], []).append(event["id"])
-        if "related_to" in event:
-            if isinstance(event["related_to"], list):
-                graph[event["id"]].extend(event["related_to"])
-            else:
-                graph[event["id"]].append(event["related_to"])
-        for sub in event.get("sub_events", []):
-            graph[event["id"]].append(sub)
-    return graph
-
 st.set_page_config(page_title="LLM Wisdom Layer Dashboard", layout="wide")
 st.title("🧠 LLM-Powered Wisdom Layer Dashboard")
 
-# Upload JSON and manage model history
-uploaded_file = st.file_uploader("Upload your mental model (systems_model.json)", type="json")
-if uploaded_file:
-    new_model = json.load(uploaded_file)
+# Upload current and previous JSON models
+current_model_file = st.file_uploader("Upload CURRENT system model", type="json", key="current")
+previous_model_file = st.file_uploader("Upload PREVIOUS system model", type="json", key="previous")
 
-    if "current_model" not in st.session_state:
-        st.session_state.current_model = new_model
-        st.session_state.previous_model = None
-    else:
-        st.session_state.previous_model = st.session_state.current_model
-        st.session_state.current_model = new_model
-
-    system_model = st.session_state.current_model
+if current_model_file:
+    current_model = json.load(current_model_file)
+    st.session_state["current_model"] = current_model
 else:
-    default_path = "systems_model.json"
-    if os.path.exists(default_path):
-        with open(default_path) as f:
-            system_model = json.load(f)
-        st.session_state.current_model = system_model
-        st.session_state.previous_model = None
-    else:
-        st.warning("Please upload a system model to continue.")
-        st.stop()
+    st.warning("Upload the current model to proceed.")
+    st.stop()
 
-# Track flat graph fallback for non-LLM agents
-if "previous_flat_graph" not in st.session_state:
-    st.session_state.previous_flat_graph = None
+if previous_model_file:
+    previous_model = json.load(previous_model_file)
+    st.session_state["previous_model"] = previous_model
+else:
+    previous_model = None
+    st.session_state["previous_model"] = None
 
-# Agent Selection
+# Select Agent
 agent_choice = st.selectbox("Choose an Agent", [
     "Systems Thinking", "Chaos Theory", "Karma", "Complexity Sentinel"
 ])
 
-# Predefined sample questions by agent
+# Predefined questions
 question_options = {
     "Systems Thinking": [
         "What are the bottlenecks in this system?",
@@ -120,24 +72,28 @@ question_options = {
 sample = st.selectbox("Sample Questions", question_options.get(agent_choice, []))
 user_query = st.text_input("Ask the selected agent a question:", value=sample)
 
-# Execute Smart Prompt
+# Run Smart Prompt
 if st.button("Submit Question"):
     with st.spinner(f"Running {agent_choice} Agent with Smart Prompt..."):
-        meta_context = get_meta_context(system_model)
+        meta_context = get_meta_context(current_model)
+
         if agent_choice == "Systems Thinking":
             agent = SystemsThinkingAgentLLM()
-            result = agent.smart_prompt(system_model, meta_context, user_query)
+            result = agent.smart_prompt(current_model, meta_context, user_query)
+
         elif agent_choice == "Chaos Theory":
             agent = ChaosTheoryAgentLLM()
-            result = agent.smart_prompt(system_model, meta_context, user_query)
+            result = agent.smart_prompt(current_model, meta_context, user_query)
+
         elif agent_choice == "Karma":
             agent = KarmaAgentLLM()
-            result = agent.smart_prompt(system_model, meta_context, user_query)
+            result = agent.smart_prompt(current_model, meta_context, user_query)
+
         elif agent_choice == "Complexity Sentinel":
             agent = ComplexitySentinelAgentLLM()
             result = agent.smart_prompt(
-                current_model=st.session_state.current_model,
-                previous_model=st.session_state.previous_model,
+                current_model=st.session_state["current_model"],
+                previous_model=st.session_state["previous_model"],
                 meta_context=meta_context,
                 user_query=user_query
             )
@@ -146,38 +102,6 @@ if st.button("Submit Question"):
         try:
             parsed = json.loads(result)
             st.json(parsed)
-        except:
+        except Exception as e:
+            st.error(f"JSON parse failed: {e}")
             st.write(result)
-
-# Fallback to LLM agents with default query if no user_query provided
-if not user_query:
-    meta_context = get_meta_context(system_model)
-
-    if agent_choice == "Systems Thinking":
-        agent = SystemsThinkingAgentLLM()
-        result = agent.smart_prompt(system_model, meta_context, "Show structural bottlenecks.")
-        st.subheader("🔍 Agent Insight")
-        st.json(json.loads(result))
-
-    elif agent_choice == "Chaos Theory":
-        agent = ChaosTheoryAgentLLM()
-        result = agent.smart_prompt(system_model, meta_context, "Highlight the most volatile parts of the system.")
-        st.subheader("🔍 Agent Insight")
-        st.json(json.loads(result))
-
-    elif agent_choice == "Karma":
-        agent = KarmaAgentLLM()
-        result = agent.smart_prompt(system_model, meta_context, "Analyze ethical fragility across actors.")
-        st.subheader("🔍 Agent Insight")
-        st.json(json.loads(result))
-
-    elif agent_choice == "Complexity Sentinel":
-        agent = ComplexitySentinelAgentLLM()
-        result = agent.smart_prompt(
-            current_model=st.session_state.current_model,
-            previous_model=st.session_state.previous_model,
-            meta_context=meta_context,
-            user_query="What changes or complexity emerged?"
-        )
-        st.subheader("🔍 Agent Insight")
-        st.json(json.loads(result))

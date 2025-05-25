@@ -2,7 +2,6 @@
 # Wisdom Layer Production Agent – Complexity Sentinel (LLM-Powered)
 
 from agents.agent_base import AgentBase
-from utils.model_filter import summarize_model_for_agent
 import json
 
 class ComplexitySentinelAgentLLM(AgentBase):
@@ -16,6 +15,9 @@ class ComplexitySentinelAgentLLM(AgentBase):
         lite_current = flatten_for_diff(current_model)
         lite_previous = flatten_for_diff(previous_model)
         diff_summary = compute_diff_summary(lite_current, lite_previous)
+
+        print("[🧠 DEBUG] DIFF SUMMARY:")
+        print(json.dumps(diff_summary, indent=2))
 
         instructions = f"""
 You are the Complexity Sentinel Agent. You detect **structural changes** and **emerging complexity** in a system's evolution.
@@ -68,7 +70,7 @@ def flatten_for_diff(model):
 def compute_diff_summary(current, previous):
     summary = []
 
-    for category in current:
+    for category in set(current.keys()).union(previous.keys()):
         current_items = {json.dumps(e, sort_keys=True) for e in current.get(category, [])}
         previous_items = {json.dumps(e, sort_keys=True) for e in previous.get(category, [])}
 
