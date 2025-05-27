@@ -99,9 +99,11 @@ if st.button("Submit Question"):
             )
 
         st.subheader("🔍 Agent Insight")
+
         try:
+            result = result.strip()
             parsed = json.loads(result)
             st.json(parsed)
-        except Exception as e:
-            st.error(f"JSON parse failed: {e}")
-            st.write(result)
+        except json.JSONDecodeError:
+            st.warning("⚠️ The response is not JSON. Displaying raw text instead.")
+            st.markdown(result)
