@@ -6,6 +6,7 @@ from utils.model_filter import summarize_model_for_agent
 import openai
 import os
 import json
+import re
 
 class SystemsThinkingAgentLLM(AgentBase):
     def __init__(self, system_context="IT Organization"):
@@ -53,6 +54,7 @@ Now, answer the following question:
 {user_question}
 
 Use DSRP (Distinctions, Systems, Relationships, Perspectives) if applicable.
+Respond strictly in JSON format.
 """
 
         response = client.chat.completions.create(
@@ -63,5 +65,20 @@ Use DSRP (Distinctions, Systems, Relationships, Perspectives) if applicable.
             ],
             temperature=0.3
         )
-        return response.choices[0].message.content if hasattr(response.choices[0], "message") else response.choices[0].text
 
+        raw = response.choices[0].message.content.strip()
+
+        # Try to extract valid JSON using a regex fallback
+        try:
+            match = re.search(r'{.*}', raw, re.DOTALL)
+            json_text = match.group(0) if match else raw
+            return json_text  # Streamlit will still call json.loads()
+        except Exception as e:
+            # Fail-safe fallback
+            return json.dumps({
+                "bottlenecks": [],
+                "isolated_nodes": [],
+                "perspective_conflicts": [],
+                "feedback_loops": [],
+                "llm_reasoning": f"Failed to parse JSON from LLM output. Raw text:\n{raw}"
+            }, indent=2)

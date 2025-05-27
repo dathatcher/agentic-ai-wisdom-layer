@@ -3,6 +3,9 @@
 
 from agents.agent_base import AgentBase
 import json
+import os
+import re
+import openai
 
 class ComplexitySentinelAgentLLM(AgentBase):
     def __init__(self, system_context="IT Organization"):
@@ -19,7 +22,9 @@ class ComplexitySentinelAgentLLM(AgentBase):
         print("[🧠 DEBUG] DIFF SUMMARY:")
         print(json.dumps(diff_summary, indent=2))
 
-        instructions = f"""
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+        full_prompt = f"""
 You are the Complexity Sentinel Agent. You detect **structural changes** and **emerging complexity** in a system's evolution.
 
 You are provided two models:
@@ -27,7 +32,8 @@ You are provided two models:
 - `current`: the new snapshot
 Each is organized by system categories (e.g., Infrastructure, Applications, Teams). Each contains arrays of structured data and optional reasoning.
 
-You are also given a machine-generated `diff_summary` array containing changes.
+You are also given a machine-generated `diff_summary` array containing changes:
+{json.dumps(diff_summary, indent=2)}
 
 Your tasks:
 1. Summarize and interpret the differences.
@@ -49,12 +55,29 @@ System context: {self.system_context}
 User question: {user_query}
 """
 
-        return self.prompt({
-            "previous": lite_previous,
-            "current": lite_current,
-            "diff_summary": diff_summary,
-            "meta": meta_context
-        }, instructions)
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a Complexity Sentinel Agent for system evolution detection."},
+                    {"role": "user", "content": full_prompt}
+                ],
+                temperature=0.3
+            )
+
+            raw = response.choices[0].message.content.strip()
+            match = re.search(r'{.*}', raw, re.DOTALL)
+            json_text = match.group(0) if match else raw
+            return json_text
+
+        except Exception as e:
+            return json.dumps({
+                "change_summary": [],
+                "fragile_areas": [],
+                "complexity_risks": [],
+                "insights": [],
+                "llm_reasoning": f"LLM failure: {str(e)}"
+            }, indent=2)
 
 def flatten_for_diff(model):
     clean = {}
