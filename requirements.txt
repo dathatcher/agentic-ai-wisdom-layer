@@ -14,3 +14,5 @@ scikit-learn
 seaborn
 streamlit==1.45.1
 tenacity
+python-dotenv
+

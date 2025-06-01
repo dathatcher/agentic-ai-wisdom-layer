@@ -10,6 +10,9 @@ from agents.chaos_theory_agent_llm import ChaosTheoryAgentLLM
 from agents.karma_agent_llm import KarmaAgentLLM
 from agents.complexity_sentinel_agent_llm import ComplexitySentinelAgentLLM
 from agents.meta_contexts import get_meta_context
+from dotenv import load_dotenv
+load_dotenv()
+
 
 st.set_page_config(page_title="LLM Wisdom Layer Dashboard", layout="wide")
 st.title("🧠 LLM-Powered Wisdom Layer Dashboard")

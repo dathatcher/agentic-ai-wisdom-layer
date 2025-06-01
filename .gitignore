@@ -7,7 +7,7 @@ __pycache__/
 venv/
 env/
 .venv/
-
+.env
 # Ignore system files
 .DS_Store
 *.log
