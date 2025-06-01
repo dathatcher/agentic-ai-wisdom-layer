@@ -14,6 +14,14 @@ class ComplexitySentinelAgentLLM(AgentBase):
     def smart_prompt(self, current_model, previous_model, meta_context, user_query):
         if previous_model is None:
             return "🕰️ No previous model loaded. Please upload a second model to compare system evolution."
+        if current_model == previous_model:
+            return json.dumps({
+           "change_summary": [],
+           "fragile_areas": [],
+           "complexity_risks": [],
+           "insights": [],
+           "llm_reasoning": "No structural changes were detected between the previous and current models."
+        })
 
         lite_current = flatten_for_diff(current_model)
         lite_previous = flatten_for_diff(previous_model)
