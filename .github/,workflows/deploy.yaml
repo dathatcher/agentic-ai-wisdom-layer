@@ -23,24 +23,24 @@ jobs:
           which docker || (sudo apt update && sudo apt install -y docker.io)
 
           echo "🔐 Logging into GHCR..."
-          docker login ghcr.io -u dthatcher -p ${{ secrets.GHCR_PAT }}
+          docker login ghcr.io -u dathatcher -p ${{ secrets.GHCR_PAT }}
 
           echo "📄 Creating updated .env file..."
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > /home/ubuntu/.env
 
           echo "📥 Pulling new image..."
-          docker pull ghcr.io/dthatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
+          docker pull ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
 
           echo "🧹 Stopping and removing old container..."
           docker stop wisdom || true
           docker rm wisdom || true
-          docker rmi ghcr.io/dthatcher/wisdom-layer-poc:latest || true
+          docker rmi ghcr.io/dathatcher/wisdom-layer-poc:latest || true
 
           echo "🚀 Running new container..."
           docker run -d \
             --env-file /home/ubuntu/.env \
             -p 8501:8501 \
             --name wisdom \
-            ghcr.io/dthatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
+            ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
 
           echo "✅ Wisdom Layer is deployed at http://${{ secrets.SSH_HOST }}:8501"
