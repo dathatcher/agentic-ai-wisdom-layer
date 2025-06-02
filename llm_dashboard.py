@@ -14,8 +14,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-st.set_page_config(page_title="LLM Wisdom Layer Dashboard V4", layout="wide")
-st.title("🧠 LLM-Powered Wisdom Layer Dashboard")
+st.set_page_config(page_title="LLM Wisdom Layer Dashboard V6", layout="wide")
+st.title("🧠 LLM-Powered Wisdom Layer Dashboard v6")
 
 # Upload current and previous JSON models
 current_model_file = st.file_uploader("Upload CURRENT system model", type="json", key="current")
