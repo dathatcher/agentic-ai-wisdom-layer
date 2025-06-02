@@ -1,0 +1,46 @@
+name: Deploy Wisdom Layer from GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Enter the version to deploy (e.g., v2)'
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 🚀 SSH and Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          echo "🔍 Ensuring Docker is installed..."
+          which docker || (sudo apt update && sudo apt install -y docker.io)
+
+          echo "🔐 Logging into GHCR..."
+          docker login ghcr.io -u dthatcher -p ${{ secrets.GHCR_PAT }}
+
+          echo "📄 Creating updated .env file..."
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > /home/ubuntu/.env
+
+          echo "📥 Pulling new image..."
+          docker pull ghcr.io/dthatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
+
+          echo "🧹 Stopping and removing old container..."
+          docker stop wisdom || true
+          docker rm wisdom || true
+          docker rmi ghcr.io/dthatcher/wisdom-layer-poc:latest || true
+
+          echo "🚀 Running new container..."
+          docker run -d \
+            --env-file /home/ubuntu/.env \
+            -p 8501:8501 \
+            --name wisdom \
+            ghcr.io/dthatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
+
+          echo "✅ Wisdom Layer is deployed at http://${{ secrets.SSH_HOST }}:8501"
