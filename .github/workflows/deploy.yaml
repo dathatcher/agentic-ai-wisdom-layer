@@ -16,42 +16,6 @@ jobs:
       id: set_time
       run: echo "timestamp=$(date +'%Y-%m-%dT%H-%M-%S')" >> "$GITHUB_OUTPUT"
 
-    - name: 📄 Create deployment script
-      run: |
-        cat <<'EOF' > deploy.sh
-        #!/bin/bash
-        set -e
-
-        echo "🔍 Ensuring Docker is installed..."
-        which docker || (sudo apt update && sudo apt install -y docker.io)
-
-        echo "🔐 Logging into GHCR..."
-        docker login ghcr.io -u dathatcher -p ${{ secrets.GHCR_PAT }}
-
-        echo "📄 Creating updated .env file..."
-        echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > /home/ubuntu/.env
-
-        echo "📥 Pulling new image..."
-        docker pull ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
-
-        echo "🧹 Stopping and removing old container..."
-        docker stop wisdom || true
-        docker rm wisdom || true
-        docker rmi ghcr.io/dathatcher/wisdom-layer-poc:latest || true
-
-        echo "🚀 Running new container..."
-        docker run -d \
-          --env-file /home/ubuntu/.env \
-          -p 8501:8501 \
-          --name wisdom \
-          ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
-
-        echo "✅ Wisdom Layer is deployed at http://${{ secrets.SSH_HOST }}:8501"
-
-        echo "🧹 Cleaning up unused Docker resources..."
-        docker system prune -a -f
-        EOF
-
     - name: 🚀 SSH and Deploy with logging
       uses: appleboy/ssh-action@v1.0.0
       with:
@@ -59,7 +23,34 @@ jobs:
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         script: |
-          bash -c "bash -xe deploy.sh 2>&1 | tee deploy-${{ steps.set_time.outputs.timestamp }}.log"
+          TIMESTAMP="${{ steps.set_time.outputs.timestamp }}"
+          LOGFILE="deploy-${TIMESTAMP}.log"
+          bash -c '
+            echo "🔍 Ensuring Docker is installed..."
+            which docker || (sudo apt update && sudo apt install -y docker.io)
+
+            echo "🔐 Logging into GHCR..."
+            docker login ghcr.io -u dathatcher -p ${{ secrets.GHCR_PAT }}
+
+            echo "📄 Creating updated .env file..."
+            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > /home/ubuntu/.env
+
+            echo "📥 Pulling new image..."
+            docker pull ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
+
+            echo "🧹 Stopping and removing old container..."
+            docker stop wisdom || true
+            docker rm wisdom || true
+            docker rmi ghcr.io/dathatcher/wisdom-layer-poc:latest || true
+
+            echo "🚀 Running new container..."
+            docker run -d               --env-file /home/ubuntu/.env               -p 8501:8501               --name wisdom               ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
+
+            echo "✅ Wisdom Layer is deployed at http://${{ secrets.SSH_HOST }}:8501"
+
+            echo "🧹 Cleaning up unused Docker resources..."
+            docker system prune -a -f
+          ' | tee $LOGFILE
 
     - name: 📤 Upload deploy log as artifact
       uses: actions/upload-artifact@v4
