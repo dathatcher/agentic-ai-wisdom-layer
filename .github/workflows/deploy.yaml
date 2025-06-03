@@ -44,3 +44,5 @@ jobs:
             ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
 
           echo "✅ Wisdom Layer is deployed at http://${{ secrets.SSH_HOST }}:8501"
+          echo "🧹 Cleaning up unused Docker resources..."
+            docker system prune -a -f
