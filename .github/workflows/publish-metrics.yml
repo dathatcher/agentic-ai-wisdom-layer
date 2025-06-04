@@ -19,29 +19,75 @@ jobs:
           git config --global user.email "github-actions@users.noreply.github.com"
 
       - name: Generate versioned report
-        run: |
-          mkdir -p report
+         run: |
+         mkdir -p report
           TODAY=$(date -u +%F)
-          REPORT_FILE="report/${TODAY}.html"
+         REPORT_FILE="report/${TODAY}.html"
 
-          echo "<html><head><title>Dev Metrics ${TODAY}</title>" > $REPORT_FILE
-          echo "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script></head><body>" >> $REPORT_FILE
-          echo "<h1>📊 Developer Metrics - $TODAY</h1>" >> $REPORT_FILE
-          echo "<p><strong>Branch:</strong> $GITHUB_REF</p>" >> $REPORT_FILE
+         echo "<html><head><title>Dev Metrics ${TODAY}</title>" > $REPORT_FILE
+         echo "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>" >> $REPORT_FILE
+         echo "<style>body{font-family:sans-serif;padding:2em;} h1,h2{color:#333} canvas{max-width:700px;}</style></head><body>" >> $REPORT_FILE
+         echo "<h1>📊 Developer Metrics - $TODAY</h1>" >> $REPORT_FILE
+         echo "<p><strong>Branch:</strong> $GITHUB_REF</p>" >> $REPORT_FILE
 
-          echo "<h2>🔢 Total Commits:</h2>" >> $REPORT_FILE
-          echo "<p>$(git rev-list --count HEAD)</p>" >> $REPORT_FILE
+         echo "<h2>🔢 Total Commits:</h2><p>$(git rev-list --count HEAD)</p>" >> $REPORT_FILE
 
-          echo "<h2>👥 Top Contributors (Bar Chart):</h2>" >> $REPORT_FILE
-          git shortlog -s -n | awk '{print $2, $1}' | head -5 | jq -Rn '
-            [inputs | split(" ") | {name: .[0], commits: (.[1] | tonumber)}] | . as $data |
-            "<canvas id=\"contribChart\"></canvas><script>const ctx=document.getElementById(\"contribChart\").getContext(\"2d\");new Chart(ctx,{type:\"bar\",data:{labels:" +
-            ($data | map(.name) | @json) + ",datasets:[{label:\"Commits\",data:" + ($data | map(.commits) | @json) + ",backgroundColor:\"steelblue\"}]},options:{responsive:true}});</script>"
-          ' >> $REPORT_FILE
+      # Extract top 5 contributors
+        git shortlog -s -n | head -5 > tmp_contrib.txt
+        NAMES=$(awk '{$1=""; print $0}' tmp_contrib.txt | sed 's/^ *//' | jq -R . | jq -s .)
+        COUNTS=$(awk '{print $1}' tmp_contrib.txt | jq -R . | jq -s .)
 
-          echo "<h2>🧠 Last 5 Commits:</h2><pre>" >> $REPORT_FILE
-          git log --pretty=format:"%h - %an: %s" -n 5 >> $REPORT_FILE
-          echo "</pre></body></html>" >> $REPORT_FILE
+        echo "<h2>👥 Top Contributors (Bar Chart):</h2><canvas id='contribChart'></canvas>" >> $REPORT_FILE
+        echo "<script>
+        new Chart(document.getElementById('contribChart'), {
+        type: 'bar',
+        data: {
+          labels: $NAMES,
+          datasets: [{
+            label: 'Commits',
+            data: $COUNTS,
+            backgroundColor: 'rgba(54, 162, 235, 0.7)'
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    </script>" >> $REPORT_FILE
+
+    # Commits per day in last 7 days
+    git log --since="7 days ago" --pretty=format:"%ad" --date=short | sort | uniq -c | awk '{print $2, $1}' > tmp_daily.txt
+    DAYS=$(awk '{print $1}' tmp_daily.txt | jq -R . | jq -s .)
+    COUNTS=$(awk '{print $2}' tmp_daily.txt | jq -R . | jq -s .)
+
+    echo "<h2>📈 Commits Per Day (Last 7):</h2><canvas id='lineChart'></canvas>" >> $REPORT_FILE
+    echo "<script>
+    new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: {
+          labels: $DAYS,
+          datasets: [{
+            label: 'Commits per Day',
+            data: $COUNTS,
+            borderColor: 'rgba(255,99,132,1)',
+            backgroundColor: 'rgba(255,99,132,0.2)',
+            fill: true,
+            tension: 0.2
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    </script>" >> $REPORT_FILE
+
+    echo "<h2>🧠 Last 5 Commits:</h2><pre>" >> $REPORT_FILE
+    git log --pretty=format:"%h - %an: %s" -n 5 >> $REPORT_FILE
+    echo "</pre></body></html>" >> $REPORT_FILE
 
       - name: Prepare Dashboard (index.html)
         run: |
