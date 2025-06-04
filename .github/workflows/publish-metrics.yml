@@ -1,4 +1,4 @@
-name: Bootstrap GitHub Pages
+name: publish-metrics
 
 on:
   workflow_dispatch:
