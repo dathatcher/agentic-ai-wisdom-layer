@@ -1,48 +1,20 @@
-name: [DEV] Publish Developer Metrics Report
+name: Bootstrap GitHub Pages
 
 on:
-  workflow_dispatch:  # Manual trigger for now
-  # You can uncomment below to run it every Monday at 9AM
-  # schedule:
-  #   - cron: "0 9 * * 1"
+  workflow_dispatch:
 
 jobs:
-  generate-and-publish-report:
+  publish:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # needed for git history
 
-      - name: Set up Git config
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@users.noreply.github.com"
-
-      - name: Generate HTML metrics report
+      - name: Create sample index.html
         run: |
           mkdir -p report
-          {
-            echo "<html><head><title>Dev Metrics Report</title></head><body>"
-            echo "<h1>📊 Developer Metrics</h1>"
-            echo "<p><strong>Date:</strong> $(date)</p>"
-            echo "<p><strong>Branch:</strong> $GITHUB_REF</p>"
-
-            echo "<h2>🔢 Total Commits:</h2>"
-            git rev-list --count HEAD | xargs echo "<p>" | sed 's/$/<\/p>/'
-
-            echo "<h2>👤 Top Contributors:</h2><pre>"
-            git shortlog -s -n
-            echo "</pre>"
-
-            echo "<h2>🧠 Last 5 Commits:</h2><pre>"
-            git log --pretty=format:"%h - %an: %s" -n 5
-            echo "</pre>"
-
-            echo "</body></html>"
-          } > report/index.html
+          echo "<html><body><h1>It works!</h1><p>GitHub Pages is live.</p></body></html>" > report/index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
