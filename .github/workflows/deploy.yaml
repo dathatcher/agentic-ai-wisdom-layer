@@ -73,6 +73,15 @@ jobs:
           TIMESTAMP="${{ steps.set_time.outputs.timestamp }}"
           bash -c "bash /home/ubuntu/deploy.sh $TIMESTAMP"
 
+    - name: 📥 Download deploy log from EC2
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        source: "/home/ubuntu/deploy-${{ steps.set_time.outputs.timestamp }}.log"
+        target: "./"
+
     - name: 📤 Upload deploy log as artifact
       uses: actions/upload-artifact@v4
       with:
