@@ -1,4 +1,4 @@
-name: Publish Metrics Report
+name: publish-metrics
 
 on:
   workflow_dispatch:
