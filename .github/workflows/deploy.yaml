@@ -16,13 +16,12 @@ jobs:
       id: set_time
       run: echo "timestamp=$(date +'%Y-%m-%dT%H-%M-%S')" >> "$GITHUB_OUTPUT"
 
-    - name: 📄 Create deployment script on remote
+    - name: 📄 Create deployment script
       run: |
         cat <<'EOF' > deploy.sh
         #!/bin/bash
         TIMESTAMP="$1"
-        LOGFILE="deploy-${TIMESTAMP}.log"
-
+        LOGFILE="/home/ubuntu/deploy-${TIMESTAMP}.log"
         {
           echo "🔍 Ensuring Docker is installed..."
           which docker || (sudo apt update && sudo apt install -y docker.io)
@@ -52,9 +51,17 @@ jobs:
 
           echo "🧹 Cleaning up unused Docker resources..."
           docker system prune -a -f
-
-        } 2>&1 | tee "$LOGFILE"
+        } | tee "$LOGFILE"
         EOF
+
+    - name: 📤 Copy deploy.sh to EC2
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        source: "deploy.sh"
+        target: "/home/ubuntu/"
 
     - name: 🚀 SSH and Deploy with logging
       uses: appleboy/ssh-action@v1.0.0
@@ -64,20 +71,11 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         script: |
           TIMESTAMP="${{ steps.set_time.outputs.timestamp }}"
-          bash -c "bash deploy.sh $TIMESTAMP"
+          bash -c "bash /home/ubuntu/deploy.sh $TIMESTAMP"
 
-    - name: 📤 SCP log file back to GitHub runner
-      uses: appleboy/scp-action@v0.1.4
-      with:
-        host: ${{ secrets.SSH_HOST }}
-        username: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        source: "deploy-${{ steps.set_time.outputs.timestamp }}.log"
-        target: "./"
-
-    - name: 📎 Upload deploy log as artifact
+    - name: 📤 Upload deploy log as artifact
       uses: actions/upload-artifact@v4
       with:
         name: deploy-log-${{ steps.set_time.outputs.timestamp }}
-        path: deploy-${{ steps.set_time.outputs.timestamp }}.log
+        path: deploy-*.log
         retention-days: 7
