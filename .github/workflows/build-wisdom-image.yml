@@ -1,44 +1,90 @@
-name: Build and Push Wisdom Layer Image
+name: Deploy Wisdom Layer from GHCR
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Enter version tag to push (e.g., 1.5)'
+        description: 'Enter the version to deploy (e.g., 1.5)'
         required: true
 
 jobs:
-  build-and-push:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 📥 Checkout repository
-      uses: actions/checkout@v3
+    - name: 🧓 Set deployment timestamp
+      id: set_time
+      run: echo "timestamp=$(date +'%Y-%m-%dT%H-%M-%S')" >> "$GITHUB_OUTPUT"
 
-    - name: 🛠️ Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+    - name: 📄 Create deployment script
+      run: |
+        cat <<'EOF' > deploy.sh
+        #!/bin/bash
+        TIMESTAMP="$1"
+        LOGFILE="/home/ubuntu/deploy-${TIMESTAMP}.log"
+        {
+          echo "🔍 Ensuring Docker is installed..."
+          which docker || (sudo apt update && sudo apt install -y docker.io)
 
-    - name: 🔐 Log in to GHCR
-      uses: docker/login-action@v3
+          echo "🔐 Logging into GHCR..."
+          docker login ghcr.io -u dathatcher -p ${{ secrets.GHCR_PAT }}
+
+          echo "📄 Creating updated .env file..."
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > /home/ubuntu/.env
+
+          echo "📅 Pulling new image..."
+          docker pull ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
+
+          echo "🛉 Stopping and removing old container..."
+          docker stop wisdom || true
+          docker rm wisdom || true
+          docker rmi ghcr.io/dathatcher/wisdom-layer-poc:latest || true
+
+          echo "🚀 Running new container..."
+          docker run -d \
+            --env-file /home/ubuntu/.env \
+            -p 8501:8501 \
+            --name wisdom \
+            ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
+
+          echo "✅ Wisdom Layer is deployed at http://${{ secrets.SSH_HOST }}:8501"
+
+          echo "🛉 Cleaning up unused Docker resources..."
+          docker system prune -a -f
+        } | tee "$LOGFILE"
+        EOF
+
+    - name: 📄 Copy deploy.sh to EC2
+      uses: appleboy/scp-action@v0.1.4
       with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GHCR_PAT }}
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        source: "deploy.sh"
+        target: "/home/ubuntu/"
 
-    - name: 🧱 Build and Push Docker image to GHCR
-      uses: docker/build-push-action@v5
+    - name: 🚀 SSH and Deploy with logging
+      uses: appleboy/ssh-action@v1.0.0
       with:
-        context: .
-        push: true
-        tags: |
-          ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
-          ghcr.io/dathatcher/wisdom-layer-poc:latest
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          TIMESTAMP="${{ steps.set_time.outputs.timestamp }}"
+          bash -c "bash /home/ubuntu/deploy.sh $TIMESTAMP"
 
-    - name: 🛡️ Trivy Vulnerability Scan (Non-blocking)
-      uses: aquasecurity/trivy-action@master
-      continue-on-error: true
+    - name: 📅 Download deploy log from EC2
+      uses: appleboy/scp-action@v0.1.4
       with:
-        image-ref: ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
-        format: table
-        severity: CRITICAL,HIGH
-        exit-code: 0  # Don't fail the build
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        source: "/home/ubuntu/deploy-${{ steps.set_time.outputs.timestamp }}.log"
+        target: "./"
+
+    - name: 📄 Upload deploy log as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: deploy-log-${{ steps.set_time.outputs.timestamp }}
+        path: deploy-${{ steps.set_time.outputs.timestamp }}.log
+        retention-days: 7
