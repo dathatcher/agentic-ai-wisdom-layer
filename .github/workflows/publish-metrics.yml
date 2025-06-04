@@ -1,4 +1,4 @@
-name: [DEV] Publish Developer Metrics Report
+name: Publish Metrics Report
 
 on:
   workflow_dispatch:
