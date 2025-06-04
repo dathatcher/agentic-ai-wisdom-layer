@@ -13,33 +13,45 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Git config
+      - name: Setup Git Config
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@users.noreply.github.com"
 
-      - name: Generate HTML metrics report
+      - name: Generate versioned report
         run: |
           mkdir -p report
-          {
-            echo "<html><head><title>Dev Metrics Report</title></head><body>"
-            echo "<h1>📊 Developer Metrics</h1>"
-            echo "<p><strong>Date:</strong> $(date)</p>"
-            echo "<p><strong>Branch:</strong> $GITHUB_REF</p>"
+          TODAY=$(date -u +%F)
+          REPORT_FILE="report/${TODAY}.html"
 
-            echo "<h2>🔢 Total Commits:</h2>"
-            git rev-list --count HEAD | xargs echo "<p>" | sed 's/$/<\/p>/'
+          echo "<html><head><title>Dev Metrics ${TODAY}</title>" > $REPORT_FILE
+          echo "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script></head><body>" >> $REPORT_FILE
+          echo "<h1>📊 Developer Metrics - $TODAY</h1>" >> $REPORT_FILE
+          echo "<p><strong>Branch:</strong> $GITHUB_REF</p>" >> $REPORT_FILE
 
-            echo "<h2>👤 Top Contributors:</h2><pre>"
-            git shortlog -s -n
-            echo "</pre>"
+          echo "<h2>🔢 Total Commits:</h2>" >> $REPORT_FILE
+          echo "<p>$(git rev-list --count HEAD)</p>" >> $REPORT_FILE
 
-            echo "<h2>🧠 Last 5 Commits:</h2><pre>"
-            git log --pretty=format:"%h - %an: %s" -n 5
-            echo "</pre>"
+          echo "<h2>👥 Top Contributors (Bar Chart):</h2>" >> $REPORT_FILE
+          git shortlog -s -n | awk '{print $2, $1}' | head -5 | jq -Rn '
+            [inputs | split(" ") | {name: .[0], commits: (.[1] | tonumber)}] | . as $data |
+            "<canvas id=\"contribChart\"></canvas><script>const ctx=document.getElementById(\"contribChart\").getContext(\"2d\");new Chart(ctx,{type:\"bar\",data:{labels:" +
+            ($data | map(.name) | @json) + ",datasets:[{label:\"Commits\",data:" + ($data | map(.commits) | @json) + ",backgroundColor:\"steelblue\"}]},options:{responsive:true}});</script>"
+          ' >> $REPORT_FILE
 
-            echo "</body></html>"
-          } > report/index.html
+          echo "<h2>🧠 Last 5 Commits:</h2><pre>" >> $REPORT_FILE
+          git log --pretty=format:"%h - %an: %s" -n 5 >> $REPORT_FILE
+          echo "</pre></body></html>" >> $REPORT_FILE
+
+      - name: Prepare Dashboard (index.html)
+        run: |
+          mkdir -p report
+          echo "<html><head><title>Metrics Dashboard</title></head><body><h1>🧭 Dev Metrics Dashboard</h1><ul>" > report/index.html
+          for file in $(ls report/*.html | grep -v index.html); do
+            fname=$(basename $file)
+            echo "<li><a href=\"$fname\">$fname</a></li>" >> report/index.html
+          done
+          echo "</ul></body></html>" >> report/index.html
 
       - name: Disable Jekyll processing
         run: touch report/.nojekyll
