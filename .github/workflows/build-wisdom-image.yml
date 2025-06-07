@@ -44,7 +44,7 @@ jobs:
         output: trivy-vuln-scan.csv
         exit-code: 0
 
-    - name: 📦 Generate SBOM (CycloneDX JSON)
+    - name: 📦 Generate SBOM (CycloneDX v1.5 JSON)
       uses: aquasecurity/trivy-action@master
       continue-on-error: true
       with:
@@ -52,6 +52,7 @@ jobs:
         format: cyclonedx
         output: trivy-sbom.cdx.json
         scan-type: image
+        cyclonedx.version: 1.5  # 👈 This fixes the version mismatch
         exit-code: 0
 
     - name: 🛠️ Install CycloneDX CLI
