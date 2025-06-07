@@ -15,4 +15,5 @@ seaborn
 streamlit==1.45.1
 tenacity
 python-dotenv
+setuptools>=78.1.1
 
