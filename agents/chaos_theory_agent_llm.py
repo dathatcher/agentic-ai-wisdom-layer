@@ -97,10 +97,14 @@ Respond only in JSON format with structure like:
                                     obj["data"]["status"] = "ripple_affected"
                                     affected_nodes.add(obj["data"].get("name") or obj["data"].get("hostname") or obj["data"].get("id"))
 
+        # Simple severity scoring based on affected count (out of 100)
+        score = min(100, len(affected_nodes) * 10)
+
         ripple_log.append({
             "step": step,
             "event": event,
             "summary": f"{', '.join(targets)} removed. Ripple affected: {', '.join(sorted(affected_nodes)) or 'None'}",
+            "severity_score": score,
             "llm_analysis": ""  # placeholder, will be updated by summarize_timestep
         })
         updated_model["ripple_history"] = ripple_log

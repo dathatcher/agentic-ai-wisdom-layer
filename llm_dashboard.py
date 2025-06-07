@@ -117,7 +117,7 @@ if agent_choice == "Chaos Theory":
 
     with st.form("RippleForm"):
         ripple_target = st.selectbox(
-            "Choose a person to simulate removal",
+            "Choose a node to simulate removal",
             options=[
                 obj["data"]["name"]
                 for obj in st.session_state["current_model"].get("Human Interactions", [])
@@ -143,6 +143,7 @@ if agent_choice == "Chaos Theory":
                 for entry in updated_model.get("ripple_history", []):
                     st.markdown(f"### 🌀 Step {entry['step']} Summary")
                     st.markdown(entry['summary'])
+                    st.markdown(f"**Severity Score:** {entry.get('severity_score', 'N/A')} (scale 0-100 based on number of impacted nodes)")
                     if entry.get("llm_analysis"):
                         st.info(entry["llm_analysis"])
         else:
