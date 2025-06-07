@@ -44,7 +44,7 @@ jobs:
         output: trivy-vuln-scan.csv
         exit-code: 0
 
-    - name: 📦 Generate SBOM (CycloneDX v1.5 JSON)
+    - name: 📦 Generate SBOM (CycloneDX JSON v1.6)
       uses: aquasecurity/trivy-action@master
       continue-on-error: true
       with:
@@ -52,18 +52,7 @@ jobs:
         format: cyclonedx
         output: trivy-sbom.cdx.json
         scan-type: image
-        cyclonedx.version: 1.5  # 👈 This fixes the version mismatch
         exit-code: 0
-
-    - name: 🛠️ Install CycloneDX CLI
-      run: |
-        wget https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.25.0/cyclonedx-linux-x64 -O cyclonedx
-        chmod +x cyclonedx
-        sudo mv cyclonedx /usr/local/bin/
-
-    - name: 🔄 Convert SBOM JSON to CSV
-      run: |
-        cyclonedx convert --input-file trivy-sbom.cdx.json --output-format csv --output-file trivy-sbom.csv
 
     - name: 📤 Upload Vulnerability Scan CSV
       uses: actions/upload-artifact@v4
@@ -71,8 +60,8 @@ jobs:
         name: trivy-vuln-scan-csv
         path: trivy-vuln-scan.csv
 
-    - name: 📤 Upload SBOM CSV
+    - name: 📤 Upload SBOM JSON
       uses: actions/upload-artifact@v4
       with:
-        name: trivy-sbom-csv
-        path: trivy-sbom.csv
+        name: trivy-sbom-json
+        path: trivy-sbom.cdx.json
