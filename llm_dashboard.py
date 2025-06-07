@@ -13,7 +13,6 @@ from agents.meta_contexts import get_meta_context
 from dotenv import load_dotenv
 load_dotenv()
 
-
 st.set_page_config(page_title="LLM Wisdom Layer Dashboard ", layout="wide")
 st.title("🧠 LLM-Powered Wisdom Layer Dashboard ")
 
@@ -110,3 +109,44 @@ if st.button("Submit Question"):
         except json.JSONDecodeError:
             st.warning("⚠️ The response is not JSON. Displaying raw text instead.")
             st.markdown(result)
+
+# Add Ripple Simulation UI if Chaos Agent selected
+if agent_choice == "Chaos Theory":
+    st.markdown("---")
+    st.subheader("⚡ Ripple Simulation (Chaos Agent)")
+
+    with st.form("RippleForm"):
+        ripple_target = st.selectbox(
+            "Choose a person to simulate removal",
+            options=[
+                obj["data"]["name"]
+                for obj in st.session_state["current_model"].get("Human Interactions", [])
+                if "name" in obj["data"]
+            ],
+            index=0
+        )
+        ripple_step = st.number_input("Start Step Number", min_value=1, max_value=10, value=1)
+        run_multi_step = st.checkbox("🌀 Run full ripple propagation (multi-step)")
+        submit_ripple = st.form_submit_button("Simulate Ripple")
+
+    if submit_ripple:
+        agent = ChaosTheoryAgentLLM()
+        ripple_event = {"type": "remove_person", "target": ripple_target}
+
+        if run_multi_step:
+            with st.spinner("Simulating multi-step ripple..."):
+                updated_model = agent.simulate_multi_step_ripple(
+                    model=st.session_state["current_model"],
+                    origin_event=ripple_event,
+                    max_steps=3
+                )
+                for entry in updated_model.get("ripple_history", []):
+                    st.markdown(f"### 🌀 Step {entry['step']} Summary")
+                    st.markdown(entry['summary'])
+                    if entry.get("llm_analysis"):
+                        st.info(entry["llm_analysis"])
+        else:
+            updated_model = agent.simulate_ripple_step(st.session_state["current_model"], ripple_event, ripple_step)
+            ripple_summary = agent.summarize_timestep(updated_model, ripple_step)
+            st.success(f"Ripple Step {ripple_step} from removal of {ripple_target}")
+            st.code(ripple_summary, language="markdown")
