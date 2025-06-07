@@ -34,25 +34,19 @@ jobs:
           ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
           ghcr.io/dathatcher/wisdom-layer-poc:latest
 
-    - name: 🛡️ Trivy Vulnerability Scan (CSV)
-      uses: aquasecurity/trivy-action@master
-      continue-on-error: true
-      with:
-        image-ref: ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
-        format: csv
-        severity: CRITICAL,HIGH
-        output: trivy-vuln-scan.csv
-        exit-code: 0
+    - name: 🛠️ Install Trivy
+      run: |
+        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
-    - name: 📦 Generate SBOM (CycloneDX JSON v1.6)
-      uses: aquasecurity/trivy-action@master
+    - name: 🛡️ Trivy Vulnerability Scan (CSV)
+      run: |
+        trivy image --format csv --severity CRITICAL,HIGH --output trivy-vuln-scan.csv ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
       continue-on-error: true
-      with:
-        image-ref: ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
-        format: cyclonedx
-        output: trivy-sbom.cdx.json
-        scan-type: image
-        exit-code: 0
+
+    - name: 📦 Generate SBOM (CycloneDX JSON)
+      run: |
+        trivy image --format cyclonedx --output trivy-sbom.cdx.json ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
+      continue-on-error: true
 
     - name: 📤 Upload Vulnerability Scan CSV
       uses: actions/upload-artifact@v4
