@@ -34,17 +34,17 @@ jobs:
           ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
           ghcr.io/dathatcher/wisdom-layer-poc:latest
 
-    - name: 🛡️ Trivy Vulnerability Scan (Non-blocking)
+    - name: 🛡️ Trivy Vulnerability Scan (CSV)
       uses: aquasecurity/trivy-action@master
       continue-on-error: true
       with:
         image-ref: ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
-        format: table
+        format: csv
         severity: CRITICAL,HIGH
-        output: trivy-vuln-scan.txt
+        output: trivy-vuln-scan.csv
         exit-code: 0
 
-    - name: 📦 Generate SBOM with Trivy
+    - name: 📦 Generate SBOM (CycloneDX JSON)
       uses: aquasecurity/trivy-action@master
       continue-on-error: true
       with:
@@ -54,14 +54,24 @@ jobs:
         scan-type: image
         exit-code: 0
 
-    - name: 📤 Upload Trivy Scan Results
-      uses: actions/upload-artifact@v4
-      with:
-        name: trivy-vulnerability-scan
-        path: trivy-vuln-scan.txt
+    - name: 🛠️ Install CycloneDX CLI
+      run: |
+        wget https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.25.0/cyclonedx-linux-x64 -O cyclonedx
+        chmod +x cyclonedx
+        sudo mv cyclonedx /usr/local/bin/
 
-    - name: 📤 Upload SBOM (CycloneDX)
+    - name: 🔄 Convert SBOM JSON to CSV
+      run: |
+        cyclonedx convert --input-file trivy-sbom.cdx.json --output-format csv --output-file trivy-sbom.csv
+
+    - name: 📤 Upload Vulnerability Scan CSV
       uses: actions/upload-artifact@v4
       with:
-        name: trivy-sbom
-        path: trivy-sbom.cdx.json
+        name: trivy-vuln-scan-csv
+        path: trivy-vuln-scan.csv
+
+    - name: 📤 Upload SBOM CSV
+      uses: actions/upload-artifact@v4
+      with:
+        name: trivy-sbom-csv
+        path: trivy-sbom.csv
