@@ -41,4 +41,27 @@ jobs:
         image-ref: ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
         format: table
         severity: CRITICAL,HIGH
-        exit-code: 0  # Don't fail the build
+        output: trivy-vuln-scan.txt
+        exit-code: 0
+
+    - name: 📦 Generate SBOM with Trivy
+      uses: aquasecurity/trivy-action@master
+      continue-on-error: true
+      with:
+        image-ref: ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
+        format: cyclonedx
+        output: trivy-sbom.cdx.json
+        scan-type: image
+        exit-code: 0
+
+    - name: 📤 Upload Trivy Scan Results
+      uses: actions/upload-artifact@v4
+      with:
+        name: trivy-vulnerability-scan
+        path: trivy-vuln-scan.txt
+
+    - name: 📤 Upload SBOM (CycloneDX)
+      uses: actions/upload-artifact@v4
+      with:
+        name: trivy-sbom
+        path: trivy-sbom.cdx.json
