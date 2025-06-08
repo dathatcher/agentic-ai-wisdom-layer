@@ -1,4 +1,4 @@
-name: Deploy Scan Dashboard to GitHub Pages
+name: Upload Build Summary (No Pages)
 
 on:
   workflow_run:
@@ -7,15 +7,11 @@ on:
       - completed
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages  # 👈 REQUIRED for GitHub Pages deploy
+  build-summary:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pages: write
-      id-token: write
 
     steps:
     - name: ⬇️ Checkout repo
@@ -23,25 +19,37 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: 🧱 Setup Pages
-      uses: actions/configure-pages@v3
-
-    - name: 📂 Prepare scan dashboard folder
+    - name: 📄 Generate static HTML summary
       run: |
-        BUILD_ID="wisdom-${{ github.run_id }}"
-        mkdir -p dashboard/$BUILD_ID
-        cp trivy-*.json dashboard/$BUILD_ID/ || true
-        cp trivy-*.csv dashboard/$BUILD_ID/ || true
-        echo "<h1>Scan Results for $BUILD_ID</h1>" > dashboard/$BUILD_ID/index.html
+        mkdir -p dashboard
+        cat <<EOF > dashboard/index.html
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Build Summary</title>
+        </head>
+        <body>
+          <h1>Wisdom Layer – Build Summary</h1>
+          <p><strong>Build ID:</strong> wisdom-${{ github.run_id }}</p>
+          <p><strong>Timestamp:</strong> ${GITHUB_RUN_STARTED_AT}</p>
+          <p><strong>View Full Build:</strong>
+            <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">
+              GitHub Actions Run #${{ github.run_id }}
+            </a>
+          </p>
+          <h2>Attached Scan Results</h2>
+          <ul>
+            <li><code>trivy-vuln-scan.json</code> and <code>.csv</code></li>
+            <li><code>trivy-sbom.cdx.json</code> and <code>.csv</code></li>
+          </ul>
+        </body>
+        </html>
+        EOF
 
-    - name: 📦 Upload dashboard as GitHub Pages artifact
+    - name: 📤 Upload summary dashboard
       uses: actions/upload-artifact@v4
       with:
-       name: github-pages
-       path: dashboard
-       if-no-files-found: ignore  # avoid error if empty
-       retention-days: 1          # auto-expire quickly
-
-
-    - name: 🚀 Deploy to GitHub Pages
-      uses: actions/deploy-pages@v4
+        name: build-summary
+        path: dashboard
+        if-no-files-found: error
+        retention-days: 7
