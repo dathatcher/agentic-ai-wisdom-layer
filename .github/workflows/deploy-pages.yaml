@@ -8,6 +8,8 @@ on:
 
 jobs:
   deploy:
+    environment:
+      name: github-pages  # 👈 REQUIRED for GitHub Pages deploy
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
@@ -35,7 +37,7 @@ jobs:
     - name: 📦 Upload dashboard as GitHub Pages artifact
       uses: actions/upload-artifact@v4
       with:
-        name: github-pages  # Required name for deploy-pages to work
+        name: github-pages
         path: dashboard
 
     - name: 🚀 Deploy to GitHub Pages
