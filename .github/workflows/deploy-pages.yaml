@@ -16,7 +16,7 @@ jobs:
       id-token: write
 
     steps:
-    - name: ⬇️ Checkout source repo
+    - name: ⬇️ Checkout repo
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
@@ -24,7 +24,7 @@ jobs:
     - name: 🧱 Setup Pages
       uses: actions/configure-pages@v3
 
-    - name: 📂 Create build folder with timestamp
+    - name: 📂 Prepare scan dashboard folder
       run: |
         export BUILD_ID="wisdom-${{ github.run_id }}"
         mkdir -p dashboard/$BUILD_ID
@@ -32,7 +32,10 @@ jobs:
         cp trivy-*.csv dashboard/$BUILD_ID/ || true
         echo "<h1>Scan Results for $BUILD_ID</h1>" > dashboard/$BUILD_ID/index.html
 
+    - name: 📦 Upload dashboard as GitHub Pages artifact
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: dashboard
+
     - name: 🚀 Deploy to GitHub Pages
       uses: actions/deploy-pages@v4
-      with:
-        folder: dashboard
