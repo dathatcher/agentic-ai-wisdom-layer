@@ -15,17 +15,45 @@ jobs:
     - name: ⬇️ Checkout repo
       uses: actions/checkout@v3
 
-    - name: 📄 Generate static HTML summary
+    - name: 📄 Generate enhanced HTML summary
       run: |
-        mkdir -p dashboard
+       mkdir -p dashboard
+
+        # Extract scan stats
+        TOTAL_VULNS=$(jq '[.Results[].Vulnerabilities[]] | length' trivy-vuln-scan.json)
+        CRITICAL_COUNT=$(jq '[.Results[].Vulnerabilities[] | select(.Severity == "CRITICAL")] | length' trivy-vuln-scan.json)
+        HIGH_COUNT=$(jq '[.Results[].Vulnerabilities[] | select(.Severity == "HIGH")] | length' trivy-vuln-scan.json)
+        COMPONENT_COUNT=$(jq '.components | length' trivy-sbom.cdx.json)
+
+        # Build HTML
         cat <<EOF > dashboard/index.html
         <!DOCTYPE html>
         <html>
-        <head><title>Wisdom Layer Build Summary</title></head>
+        <head>
+          <title>Wisdom Layer Build Summary</title>
+          <style>
+            body { font-family: Arial; }
+            h1 { color: #333; }
+            ul { line-height: 1.6; }
+          </style>
+        </head>
         <body>
-          <h1>Build Summary</h1>
-          <p><strong>Build:</strong> wisdom-${{ github.run_id }}</p>
+          <h1>Build Summary: wisdom-${{ github.run_id }}</h1>
           <p><strong>View Build:</strong> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">GitHub Actions Run</a></p>
+
+          <h2>🛡️ Vulnerability Scan</h2>
+          <ul>
+            <li>Total Vulnerabilities: <strong>$TOTAL_VULNS</strong></li>
+            <li>CRITICAL: <strong>$CRITICAL_COUNT</strong></li>
+            <li>HIGH: <strong>$HIGH_COUNT</strong></li>
+          </ul>
+
+          <h2>📦 SBOM Summary</h2>
+          <ul>
+            <li>Components Listed: <strong>$COMPONENT_COUNT</strong></li>
+          </ul>
+
+          <h2>📁 Attached Files</h2>
           <ul>
             <li>trivy-vuln-scan.json</li>
             <li>trivy-vuln-scan.csv</li>
@@ -35,6 +63,7 @@ jobs:
         </body>
         </html>
         EOF
+
 
     - name: 📦 Copy scan results to dashboard folder
       run: |
