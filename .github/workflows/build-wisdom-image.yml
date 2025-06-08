@@ -48,6 +48,11 @@ jobs:
         trivy image --format cyclonedx --output trivy-sbom.cdx.json ghcr.io/dathatcher/wisdom-layer-poc:${{ github.event.inputs.version }}
       continue-on-error: true
 
+    - name: 🐍 Convert JSON files to CSV
+      run: |
+        python utils/convert_trivy_json_to_csv.py trivy-vuln-scan.json
+        python utils/convert_trivy_json_to_csv.py trivy-sbom.cdx.json
+
     - name: 📤 Upload Vulnerability Scan JSON
       uses: actions/upload-artifact@v4
       with:
@@ -59,3 +64,15 @@ jobs:
       with:
         name: trivy-sbom-json
         path: trivy-sbom.cdx.json
+
+    - name: 📤 Upload Vulnerability Scan CSV
+      uses: actions/upload-artifact@v4
+      with:
+        name: trivy-vuln-scan-csv
+        path: trivy-vuln-scan.csv
+
+    - name: 📤 Upload SBOM CSV
+      uses: actions/upload-artifact@v4
+      with:
+        name: trivy-sbom-csv
+        path: trivy-sbom.cdx.csv

@@ -4,11 +4,10 @@ import sys
 from pathlib import Path
 
 def flatten_vulns(trivy_json):
-    vulnerabilities = []
-
+    output = []
     for target in trivy_json.get("Results", []):
         for vuln in target.get("Vulnerabilities", []):
-            vulnerabilities.append({
+            output.append({
                 "Target": target.get("Target", ""),
                 "PkgName": vuln.get("PkgName", ""),
                 "InstalledVersion": vuln.get("InstalledVersion", ""),
@@ -19,7 +18,22 @@ def flatten_vulns(trivy_json):
                 "PrimaryURL": vuln.get("PrimaryURL", ""),
                 "CVSS Score": vuln.get("CVSS", {}).get("nvd", {}).get("V3Score", "")
             })
-    return vulnerabilities
+    return output
+
+def flatten_components(sbom_json):
+    output = []
+    for comp in sbom_json.get("components", []):
+        output.append({
+            "Type": comp.get("type", ""),
+            "Name": comp.get("name", ""),
+            "Version": comp.get("version", ""),
+            "Package URL": comp.get("purl", ""),
+            "License(s)": ", ".join(lic.get("license", {}).get("id", "") for lic in comp.get("licenses", [])) if comp.get("licenses") else "",
+            "CPE": ", ".join(comp.get("cpe", [])) if isinstance(comp.get("cpe"), list) else comp.get("cpe", ""),
+            "Supplier": comp.get("supplier", {}).get("name", ""),
+            "Description": comp.get("description", ""),
+        })
+    return output
 
 def main():
     if len(sys.argv) != 2:
@@ -33,10 +47,16 @@ def main():
         with input_path.open('r', encoding='utf-8') as f:
             data = json.load(f)
 
-        rows = flatten_vulns(data)
+        if "Results" in data:
+            rows = flatten_vulns(data)
+        elif "components" in data:
+            rows = flatten_components(data)
+        else:
+            print("❌ Error: Unsupported JSON structure.")
+            sys.exit(1)
 
         if not rows:
-            print("No vulnerabilities found in input.")
+            print("⚠️ No data to write.")
             sys.exit(0)
 
         with output_path.open('w', newline='', encoding='utf-8') as f:
