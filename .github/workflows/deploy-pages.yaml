@@ -1,0 +1,38 @@
+name: Deploy Scan Dashboard to GitHub Pages
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Wisdom Layer Image"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+    - name: ⬇️ Checkout source repo
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: 🧱 Setup Pages
+      uses: actions/configure-pages@v3
+
+    - name: 📂 Create build folder with timestamp
+      run: |
+        export BUILD_ID="wisdom-${{ github.run_id }}"
+        mkdir -p dashboard/$BUILD_ID
+        cp trivy-*.json dashboard/$BUILD_ID/ || true
+        cp trivy-*.csv dashboard/$BUILD_ID/ || true
+        echo "<h1>Scan Results for $BUILD_ID</h1>" > dashboard/$BUILD_ID/index.html
+
+    - name: 🚀 Deploy to GitHub Pages
+      uses: actions/deploy-pages@v4
+      with:
+        folder: dashboard
