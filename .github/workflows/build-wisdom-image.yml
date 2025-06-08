@@ -76,3 +76,43 @@ jobs:
       with:
         name: trivy-sbom-csv
         path: trivy-sbom.cdx.csv
+
+    - name: 📄 Generate static build summary (HTML)
+      run: |
+        mkdir -p dashboard
+        TOTAL_VULNS=$(jq '[.Results[].Vulnerabilities[]] | length' trivy-vuln-scan.json)
+        CRITICAL_COUNT=$(jq '[.Results[].Vulnerabilities[] | select(.Severity == "CRITICAL")] | length' trivy-vuln-scan.json)
+        HIGH_COUNT=$(jq '[.Results[].Vulnerabilities[] | select(.Severity == "HIGH")] | length' trivy-vuln-scan.json)
+        COMPONENT_COUNT=$(jq '.components | length' trivy-sbom.cdx.json)
+
+        cat <<EOF > dashboard/index.html
+        <!DOCTYPE html>
+        <html>
+        <head><title>Wisdom Layer Build Summary</title></head>
+        <body>
+          <h1>Build Summary: wisdom-${{ github.run_id }}</h1>
+          <p><strong>View Build:</strong> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">GitHub Actions Run</a></p>
+          <h2>🛡️ Vulnerability Scan</h2>
+          <ul>
+            <li>Total: <strong>$TOTAL_VULNS</strong></li>
+            <li>CRITICAL: <strong>$CRITICAL_COUNT</strong></li>
+            <li>HIGH: <strong>$HIGH_COUNT</strong></li>
+          </ul>
+          <h2>📦 SBOM</h2>
+          <ul>
+            <li>Components: <strong>$COMPONENT_COUNT</strong></li>
+          </ul>
+          <h2>📁 Attached Files</h2>
+          <ul>
+            <li>trivy-vuln-scan.json + .csv</li>
+            <li>trivy-sbom.cdx.json + .csv</li>
+          </ul>
+        </body>
+        </html>
+        EOF
+
+    - name: 📤 Upload Build Summary (HTML + Scan Files)
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-results-wisdom-${{ github.run_id }}
+        path: dashboard
