@@ -1,4 +1,4 @@
-name: Upload Build Summary (No Pages)
+name: Deploy Build Summary to GitHub Pages
 
 on:
   workflow_run:
@@ -7,49 +7,42 @@ on:
       - completed
 
 jobs:
-  build-summary:
+  deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+
     permissions:
       contents: write
+      pages: write
+      id-token: write
 
     steps:
-    - name: ⬇️ Checkout repo
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-
-    - name: 📄 Generate static HTML summary
+    - name: 🧾 Create GitHub Pages content
       run: |
-        mkdir -p dashboard
-        cat <<EOF > dashboard/index.html
+        mkdir -p public
+        cat <<EOF > public/index.html
         <!DOCTYPE html>
         <html>
-        <head>
-          <title>Build Summary</title>
-        </head>
+        <head><title>Wisdom Layer Build Summary</title></head>
         <body>
-          <h1>Wisdom Layer – Build Summary</h1>
-          <p><strong>Build ID:</strong> wisdom-${{ github.run_id }}</p>
-          <p><strong>Timestamp:</strong> ${GITHUB_RUN_STARTED_AT}</p>
-          <p><strong>View Full Build:</strong>
-            <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">
-              GitHub Actions Run #${{ github.run_id }}
-            </a>
-          </p>
-          <h2>Attached Scan Results</h2>
+          <h1>Latest Build Summary</h1>
+          <p><strong>Build:</strong> wisdom-${{ github.run_id }}</p>
+          <p><strong>Run:</strong> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">GitHub Actions Run #${{ github.run_id }}</a></p>
           <ul>
-            <li><code>trivy-vuln-scan.json</code> and <code>.csv</code></li>
-            <li><code>trivy-sbom.cdx.json</code> and <code>.csv</code></li>
+            <li>🔗 <code>trivy-vuln-scan.json</code> + <code>.csv</code> in build artifacts</li>
+            <li>🔗 <code>trivy-sbom.cdx.json</code> + <code>.csv</code> in build artifacts</li>
           </ul>
         </body>
         </html>
         EOF
 
-    - name: 📤 Upload summary dashboard
+    - name: 📦 Upload artifact for Pages
       uses: actions/upload-artifact@v4
       with:
-        name: build-summary
-        path: dashboard
-        if-no-files-found: error
-        retention-days: 7
+        name: github-pages
+        path: public
+
+    - name: 🚀 Deploy to GitHub Pages
+      uses: actions/deploy-pages@v4
