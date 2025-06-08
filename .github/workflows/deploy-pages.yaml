@@ -1,4 +1,4 @@
-name: Deploy Build Summary to GitHub Pages
+name: Upload Build Summary (ZIP-based)
 
 on:
   workflow_run:
@@ -7,42 +7,43 @@ on:
       - completed
 
 jobs:
-  deploy:
+  build-summary:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
 
     steps:
-    - name: 🧾 Create GitHub Pages content
+    - name: ⬇️ Checkout repo
+      uses: actions/checkout@v3
+
+    - name: 📄 Generate static HTML summary
       run: |
-        mkdir -p public
-        cat <<EOF > public/index.html
+        mkdir -p dashboard
+        cat <<EOF > dashboard/index.html
         <!DOCTYPE html>
         <html>
         <head><title>Wisdom Layer Build Summary</title></head>
         <body>
-          <h1>Latest Build Summary</h1>
+          <h1>Build Summary</h1>
           <p><strong>Build:</strong> wisdom-${{ github.run_id }}</p>
-          <p><strong>Run:</strong> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">GitHub Actions Run #${{ github.run_id }}</a></p>
+          <p><strong>View Build:</strong> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">GitHub Actions Run</a></p>
           <ul>
-            <li>🔗 <code>trivy-vuln-scan.json</code> + <code>.csv</code> in build artifacts</li>
-            <li>🔗 <code>trivy-sbom.cdx.json</code> + <code>.csv</code> in build artifacts</li>
+            <li>trivy-vuln-scan.json</li>
+            <li>trivy-vuln-scan.csv</li>
+            <li>trivy-sbom.cdx.json</li>
+            <li>trivy-sbom.cdx.csv</li>
           </ul>
         </body>
         </html>
         EOF
 
-    - name: 📦 Upload artifact for Pages
+    - name: 📦 Copy scan results to dashboard folder
+      run: |
+        cp trivy-*.json dashboard/ || true
+        cp trivy-*.csv dashboard/ || true
+
+    - name: 📤 Upload summary and scans as artifact ZIP
       uses: actions/upload-artifact@v4
       with:
-        name: github-pages
-        path: public
-
-    - name: 🚀 Deploy to GitHub Pages
-      uses: actions/deploy-pages@v4
+        name: build-results-wisdom-${{ github.run_id }}
+        path: dashboard
+        if-no-files-found: error
